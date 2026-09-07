@@ -1,0 +1,8 @@
+secrets.yaml
+.esphome/
+hardware/fingerprint-*.md
+devices.json
+snapshot.json
+tinytuya.json
+*.bin
+*.uf2

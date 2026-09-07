@@ -1,0 +1,141 @@
+# Korean IoT multi-tap — ESP8266 / ESP8285 (Tuya TYWE3S module)
+#
+# ⚠ EVERY PIN BELOW IS A HYPOTHESIS. Verify against your unit (docs/01, step 5)
+#   before flashing.
+#
+# ESP8285 modules have 1 MB of flash. That is enough for ESPHome but leaves
+# little headroom — keep the component list lean, and note that OTA on 1 MB
+# devices requires the compiled image to fit in half the flash.
+
+substitutions:
+  device_name: multitap-01
+  friendly_name: "Multi-tap 01"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+esp8266:
+  board: esp8285
+  restore_from_flash: false   # relays default OFF after power loss — see docs/07
+
+logger:
+  baud_rate: 0                # TX/RX are often used by the board; free them
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${device_name} setup"
+    password: !secret ap_password
+
+captive_portal:
+
+web_server:
+  version: 2                  # v3 is heavy for 1 MB flash
+  auth:
+    username: admin
+    password: !secret web_password
+
+mqtt:
+  broker: !secret mqtt_broker
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: true
+  birth_message:
+    topic: ${device_name}/status
+    payload: online
+  will_message:
+    topic: ${device_name}/status
+    payload: offline
+
+switch:
+  - platform: gpio
+    name: "Outlet 1"
+    id: outlet_1
+    pin: GPIO12               # VERIFY
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "Outlet 2"
+    id: outlet_2
+    pin: GPIO5                # VERIFY
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "Outlet 3"
+    id: outlet_3
+    pin: GPIO4                # VERIFY
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "Outlet 4"
+    id: outlet_4
+    pin: GPIO15               # VERIFY — GPIO15 must be low at boot; check the
+                              # relay driver does not hold it high
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "USB ports"
+    id: usb_rail
+    pin: GPIO16               # VERIFY
+    restore_mode: ALWAYS_ON
+
+binary_sensor:
+  - platform: gpio
+    name: "Master button"
+    pin:
+      number: GPIO13          # VERIFY
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    on_press:
+      then:
+        - lambda: |-
+            bool any_on = id(outlet_1).state || id(outlet_2).state ||
+                          id(outlet_3).state || id(outlet_4).state;
+            if (any_on) {
+              id(outlet_1).turn_off(); id(outlet_2).turn_off();
+              id(outlet_3).turn_off(); id(outlet_4).turn_off();
+            } else {
+              id(outlet_1).turn_on(); id(outlet_2).turn_on();
+              id(outlet_3).turn_on(); id(outlet_4).turn_on();
+            }
+
+status_led:
+  pin:
+    number: GPIO0             # VERIFY — GPIO0 also selects boot mode
+    inverted: true
+
+sensor:
+  - platform: uptime
+    name: "Uptime"
+  - platform: wifi_signal
+    name: "Wi-Fi signal"
+    update_interval: 60s
+
+  # --- Metering: enable only if a BL0937/HLW8012 is present. Calibrate first. ---
+  # - platform: hlw8012
+  #   model: BL0937
+  #   sel_pin: {number: GPIO14, inverted: true}   # VERIFY
+  #   cf_pin: GPIO13                              # VERIFY
+  #   cf1_pin: GPIO14                             # VERIFY
+  #   current_resistor: 0.001 ohm
+  #   voltage_divider: 2351
+  #   change_mode_every: 3
+  #   update_interval: 10s
+  #   voltage: {name: "Voltage"}
+  #   current: {name: "Current"}
+  #   power:   {name: "Power", id: strip_power}
+
+time:
+  - platform: sntp
+    id: sntp_time
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
