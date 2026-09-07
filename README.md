@@ -45,6 +45,13 @@ wrong costs weeks.
 | [`firmware/esphome/`](firmware/esphome/) | Starter ESPHome configs for both likely chipsets |
 | [`tools/`](tools/) | Network discovery and Tuya datapoint probe scripts |
 
+## Published summary
+
+A condensed, shareable version of this plan — the problem, the electrical
+architecture, the three routes, the app design and the roadmap — is published at
+<https://claude.ai/code/artifact/3cbd0722-eb9d-4782-a16b-624e36bde80e>.
+The documents below are the working detail behind it.
+
 ## Start here
 
 1. Read [`docs/00-executive-summary.md`](docs/00-executive-summary.md).
