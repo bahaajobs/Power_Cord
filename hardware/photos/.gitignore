@@ -1,0 +1,8 @@
+# Photographs are large and rarely diffable. Keep them out of git by default:
+# add deliberately with `git add -f`, or set up Git LFS if you want them tracked.
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.webp
+!/../schematics/*

@@ -1,8 +1,19 @@
+node_modules/
+data/
+*.log
+
+# Firmware secrets and build output
 secrets.yaml
 .esphome/
+*.bin
+*.uf2
+
+# Per-unit records and vendor dumps that should not be shared by accident
 hardware/fingerprint-*.md
 devices.json
 snapshot.json
 tinytuya.json
-*.bin
-*.uf2
+
+# Local environment
+.env
+.DS_Store

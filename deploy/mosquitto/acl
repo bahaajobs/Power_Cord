@@ -1,0 +1,20 @@
+# Topic permissions.
+#
+# The server sees everything. Each strip is confined to its own prefix, so one
+# compromised strip cannot read or switch another. Add a stanza per strip, using
+# the strip's MQTT client name as both the username and the topic prefix.
+
+user powercord-server
+topic readwrite #
+
+# --- one stanza per strip -----------------------------------------------------
+# Copy this block for each unit, replacing 88D039B2588D with its topic prefix.
+#
+# user 88D039B2588D
+# topic write 88D039B2588D/+/get
+# topic write 88D039B2588D/connected
+# topic write 88D039B2588D/ip
+# topic write 88D039B2588D/rssi
+# topic write tele/88D039B2588D/SENSOR
+# topic read  88D039B2588D/+/set
+# topic read  cmnd/88D039B2588D/+

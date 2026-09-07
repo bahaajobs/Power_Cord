@@ -1,0 +1,36 @@
+# systemd unit for running the server directly (no Docker).
+#
+#   sudo cp deploy/powercord.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now powercord
+#   journalctl -u powercord -f
+#
+# Adjust User, WorkingDirectory and the EnvironmentFile path to match where you
+# cloned the repository.
+
+[Unit]
+Description=Power Cord server
+Documentation=https://github.com/bahaajobs/Power_Cord
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=powercord
+WorkingDirectory=/opt/powercord
+EnvironmentFile=/opt/powercord/.env
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server/src/index.js
+Restart=on-failure
+RestartSec=5
+
+# The server needs its data directory and nothing else on the filesystem.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/powercord/data
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

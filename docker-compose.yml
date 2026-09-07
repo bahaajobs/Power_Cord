@@ -1,0 +1,53 @@
+# Broker + server, the way you would actually run this at home or on a VPS.
+#
+#   cp .env.example .env      # then edit it
+#   docker compose up -d
+#
+# Before first start, create the broker password file:
+#   docker compose run --rm broker \
+#     mosquitto_passwd -c -b /mosquitto/config/passwd powercord-server 'yourpassword'
+#
+# See docs/09-backend-manual.md for the full walkthrough, including TLS.
+
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      # 1883 is bound to localhost only. Strips on your LAN reach it through
+      # the host's LAN address; exposing plaintext MQTT to the internet is how
+      # someone else ends up switching your relays.
+      - "127.0.0.1:1883:1883"
+      # - "8883:8883"   # uncomment once certificates are in place
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deploy/mosquitto/acl:/mosquitto/config/acl:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-config:/mosquitto/config
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  server:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - broker
+    ports:
+      - "${PC_PORT:-8080}:8080"
+    environment:
+      PC_MQTT_URL: mqtt://broker:1883
+      PC_MQTT_USERNAME: ${PC_MQTT_USERNAME:-powercord-server}
+      PC_MQTT_PASSWORD: ${PC_MQTT_PASSWORD:?set PC_MQTT_PASSWORD in .env}
+      PC_ADMIN_USER: ${PC_ADMIN_USER:-admin}
+      PC_ADMIN_PASSWORD: ${PC_ADMIN_PASSWORD:-}
+      PC_AUTO_DISCOVER: ${PC_AUTO_DISCOVER:-true}
+    volumes:
+      - powercord-data:/app/data
+
+volumes:
+  mosquitto-data:
+  mosquitto-config:
+  powercord-data:

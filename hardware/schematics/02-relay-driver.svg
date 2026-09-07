@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img"
+     aria-label="Relay drive circuit: a module GPIO pin drives an NPN transistor or ULN2003 channel which energises the relay coil; a flyback diode across the coil clamps the turn-off spike; the contacts switch mains on the other side of the isolation barrier.">
+  <title>Relay drive circuit and why the flyback diode matters</title>
+  <rect width="900" height="360" fill="#FFFFFF"/>
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#44506A"/></marker>
+    <marker id="a2d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6B7789"/></marker>
+  </defs>
+  <style>
+    .t{font-family:"DejaVu Sans Mono",monospace;fill:#24304A}
+    .b{font-weight:700}
+    .s{font-size:10px;fill:#5C6880}
+    .box{fill:#F2F5F9;stroke:#44506A;stroke-width:1.2}
+    .w{stroke:#44506A;stroke-width:1.4;fill:none}
+    .wl{stroke:#B4432B;stroke-width:1.7;fill:none}
+    .wd{stroke:#6B7789;stroke-width:1.2;fill:none;stroke-dasharray:4 3}
+    .hl{stroke:#1F7A5C;stroke-width:1.6;fill:none}
+  </style>
+
+  <text class="t b" x="16" y="24" font-size="14">Relay drive — one channel</text>
+  <text class="s" x="16" y="40">Repeated four or five times. Which GPIO drives which relay is verified by ear, with the strip unplugged.</text>
+
+  <!-- flyback -->
+  <text class="s" x="430" y="60">clamps the coil's collapse spike — without it the transistor dies</text>
+  <text class="t b" x="430" y="76" font-size="11" fill="#1F7A5C">flyback diode  1N4148 / 1N4007</text>
+  <path class="hl" d="M430 128 V96 H630 V128"/>
+  <path d="M523 88 l0 16 -14 -8 z" fill="#1F7A5C"/>
+  <path class="hl" d="M507 88 V104"/>
+
+  <!-- coil rail -->
+  <rect class="box" x="470" y="110" width="120" height="38" rx="3"/>
+  <text class="t b" x="530" y="134" font-size="11" text-anchor="middle">RELAY COIL</text>
+  <circle cx="430" cy="128" r="2.6" fill="#44506A"/>
+  <circle cx="630" cy="128" r="2.6" fill="#44506A"/>
+  <path class="w" d="M590 129 H648"/>
+  <path class="w" d="M648 116 V142 M654 120 V138"/>
+  <text class="s" x="600" y="120">+5 V</text>
+
+  <!-- module -->
+  <rect class="box" x="20" y="160" width="130" height="70" rx="3"/>
+  <text class="t b" x="85" y="190" font-size="11" text-anchor="middle">Wi-Fi MODULE</text>
+  <text class="s" x="85" y="206" text-anchor="middle">3.3 V logic</text>
+  <path class="w" d="M150 195 H206" marker-end="url(#a2)"/>
+  <text class="s" x="158" y="188">GPIO</text>
+
+  <rect class="box" x="208" y="185" width="46" height="20" rx="2"/>
+  <text class="s" x="231" y="199" text-anchor="middle">1k</text>
+  <path class="w" d="M254 195 H300"/>
+
+  <!-- transistor -->
+  <path class="w" d="M300 160 V230"/>
+  <path class="w" d="M300 177 L338 156"/>
+  <path class="w" d="M300 213 L338 234"/>
+  <path d="M330 226 l12 6 -13 5 z" fill="#44506A"/>
+  <path class="w" d="M338 156 V128 H468"/>
+  <text class="t b" x="352" y="196" font-size="11">NPN / ULN2003</text>
+  <text class="s" x="352" y="211">S8050, or one darlington channel</text>
+
+  <path class="w" d="M338 234 V268 H300"/>
+  <path class="w" d="M288 268 H312 M292 274 H308 M296 280 H304"/>
+  <text class="s" x="278" y="272" text-anchor="end">GND</text>
+
+  <!-- coupling across the barrier -->
+  <text class="s" x="540" y="164">magnetic coupling only</text>
+  <path class="wd" d="M530 148 V172 H688" marker-end="url(#a2d)"/>
+
+  <!-- contacts -->
+  <rect class="box" x="690" y="150" width="192" height="86" rx="3" stroke-dasharray="4 3"/>
+  <text class="t b" x="786" y="174" font-size="11" text-anchor="middle">CONTACTS</text>
+  <path class="wl" d="M702 212 H742"/>
+  <path class="wl" d="M742 212 L788 194"/>
+  <circle cx="742" cy="212" r="3" fill="#B4432B"/>
+  <circle cx="792" cy="192" r="3" fill="#B4432B"/>
+  <path class="wl" d="M792 192 H870"/>
+  <text class="s" x="700" y="230">L in</text>
+  <text class="s" x="870" y="230" text-anchor="end">to outlet</text>
+  <text class="s" x="690" y="262">typ. 10 A / 250 VAC on the can:</text>
+  <text class="s" x="690" y="276">the real per-outlet limit</text>
+
+  <!-- isolation barrier -->
+  <path class="w" d="M672 88 V236" stroke-dasharray="6 4" stroke="#B4432B"/>
+  <text class="s" x="664" y="250" text-anchor="end">low-voltage side</text>
+  <text class="s" x="680" y="250" fill="#B4432B">mains side</text>
+
+  <text class="s" x="16" y="312">The contact rating is lower than the strip's plate rating, and lower still with four relays heating each other on one board.</text>
+  <text class="s" x="16" y="328">Verification without mains: unplug the strip, feed 3.3 V to the module's VCC/GND pads, then drive each candidate pin.</text>
+  <text class="s" x="16" y="344">The coil energises and the relay clicks with no mains present. Some boards invert the drive — a relay on at boot is the tell.</text>
+</svg>

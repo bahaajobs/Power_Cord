@@ -1,0 +1,24 @@
+{
+  "name": "powercord",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first control server and web app for re-flashed Korean IoT multi-taps",
+  "license": "MIT",
+  "engines": { "node": ">=22.5.0" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/src/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/src/index.js",
+    "broker": "node sim/broker.js",
+    "sim": "node sim/simulator.js",
+    "demo": "node --disable-warning=ExperimentalWarning sim/demo.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.15.2",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "aedes": "^0.51.3"
+  }
+}
