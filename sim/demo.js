@@ -77,12 +77,16 @@ run('server', ['--disable-warning=ExperimentalWarning', 'server/src/index.js'], 
 await waitForPort(Number(env.PC_PORT));
 run('sim', ['sim/simulator.js'], { PC_SIM_COUNT: process.env.PC_SIM_COUNT || '2' });
 
+// Build the box from the content so it stays square whatever the port and
+// password happen to be.
+const W = 56;
+const line = (s) => `│ ${s.padEnd(W)} │`;
 console.log(`
-┌────────────────────────────────────────────────────────────┐
-│  Open  http://localhost:${String(env.PC_PORT).padEnd(4)}                              │
-│  Sign in as  admin / ${env.PC_ADMIN_PASSWORD.padEnd(12)}                          │
-│  Ctrl-C stops everything.                                  │
-└────────────────────────────────────────────────────────────┘
+┌${'─'.repeat(W + 2)}┐
+${line(`Open  http://localhost:${env.PC_PORT}`)}
+${line(`Sign in as  admin / ${env.PC_ADMIN_PASSWORD}`)}
+${line('Ctrl-C stops everything.')}
+└${'─'.repeat(W + 2)}┘
 `);
 
 const shutdown = () => {

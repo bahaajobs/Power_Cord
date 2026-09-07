@@ -16,6 +16,9 @@ cd Power_Cord && npm install && npm run demo
 Open **http://localhost:8080**, sign in as `admin` / `powercord`. That runs a
 broker, the server and two simulated strips — the whole system without hardware.
 
+**Published pages:** the [research and plan](https://claude.ai/code/artifact/3cbd0722-eb9d-4782-a16b-624e36bde80e),
+and the [build-and-use manual](https://claude.ai/code/artifact/77a5406d-e0ae-46ae-bd7a-064703f90e56).
+
 ## What is here
 
 **Working software.** A Node.js server that bridges MQTT to a REST + WebSocket
