@@ -44,6 +44,7 @@ refurbishment work that comes with putting used switchgear back into homes.
 | **[`docs/09-backend-manual.md`](docs/09-backend-manual.md)** | **Build and run the server — laptop, home, VPS** |
 | **[`docs/10-user-manual.md`](docs/10-user-manual.md)** | **Using the app** |
 | **[`docs/11-remote-access.md`](docs/11-remote-access.md)** | **Do you need a server to use it away from home?** |
+| **[`docs/12-test-plan.md`](docs/12-test-plan.md)** | **What can be tested now, and what is gated on hardware** |
 | [`docs/sources.md`](docs/sources.md) | Every external source, with links |
 
 | Code | |
