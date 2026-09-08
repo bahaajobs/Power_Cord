@@ -17,3 +17,6 @@ tinytuya.json
 # Local environment
 .env
 .DS_Store
+
+# Broker password file, created by mosquitto_passwd
+deploy/mosquitto/passwd

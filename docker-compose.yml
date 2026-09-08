@@ -3,7 +3,8 @@
 #   cp .env.example .env      # then edit it
 #   docker compose up -d
 #
-# Before first start, create the broker password file:
+# Before first start, create the broker password file (it lands in
+# deploy/mosquitto/passwd on the host):
 #   docker compose run --rm broker \
 #     mosquitto_passwd -c -b /mosquitto/config/passwd powercord-server 'yourpassword'
 #
@@ -20,10 +21,11 @@ services:
       - "127.0.0.1:1883:1883"
       # - "8883:8883"   # uncomment once certificates are in place
     volumes:
-      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./deploy/mosquitto/acl:/mosquitto/config/acl:ro
+      # The whole config directory is bind-mounted, so the password file the
+      # broker needs lives beside the config in the repo checkout rather than
+      # inside an invisible named volume. deploy/mosquitto/passwd is gitignored.
+      - ./deploy/mosquitto:/mosquitto/config
       - mosquitto-data:/mosquitto/data
-      - mosquitto-config:/mosquitto/config
     healthcheck:
       test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
       interval: 30s
@@ -49,5 +51,4 @@ services:
 
 volumes:
   mosquitto-data:
-  mosquitto-config:
   powercord-data:

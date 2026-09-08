@@ -427,6 +427,10 @@ function energyView() {
  */
 function barChart(e) {
   const data = e.series;
+  if (!data.some((d) => d.kwh > 0)) {
+    return `<div class="empty"><p>No energy recorded in the last ${e.days} days.<br>
+      Strips without a metering chip never record any.</p></div>`;
+  }
   const W = 640, H = 260, padL = 8, padR = 8, padT = 26, padB = 30;
   const max = Math.max(...data.map((d) => d.kwh), 0.001);
   const innerW = W - padL - padR;
@@ -1041,6 +1045,7 @@ document.addEventListener('input', (ev) => {
   store.search = ev.target.value;
   // Re-render without stealing focus from the field the user is typing in.
   const pos = ev.target.selectionStart;
+  lastHtml = '';
   render();
   const next = el('search');
   if (next) { next.focus(); next.setSelectionRange(pos, pos); }
@@ -1057,7 +1062,35 @@ window.addEventListener('hashchange', async () => {
 
 /* ------------------------------------------------------------------ boot */
 
-function render() { el('app').innerHTML = view(); }
+let lastHtml = '';
+let touching = false;
+let renderQueued = false;
+
+/**
+ * Replacing #app on every telemetry push destroys the DOM a few times a minute.
+ * On a phone that loses taps and jumps the scroll position, so: skip the write
+ * when nothing changed, hold it while a finger is down, and put the scroll back
+ * afterwards.
+ */
+function render() {
+  if (touching) { renderQueued = true; return; }
+  const html = view();
+  if (html === lastHtml) return;
+  lastHtml = html;
+  const y = window.scrollY;
+  el('app').innerHTML = html;
+  if (window.scrollY !== y) window.scrollTo(0, y);
+}
+
+for (const ev of ['pointerdown', 'touchstart']) {
+  document.addEventListener(ev, () => { touching = true; }, { passive: true });
+}
+for (const ev of ['pointerup', 'pointercancel', 'touchend', 'touchcancel']) {
+  document.addEventListener(ev, () => {
+    touching = false;
+    if (renderQueued) { renderQueued = false; setTimeout(render, 0); }
+  }, { passive: true });
+}
 
 async function boot() {
   if (!store.token) { render(); return; }
