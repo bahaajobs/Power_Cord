@@ -1,0 +1,17 @@
+{
+  "appId": "eg.powercord.app",
+  "appName": "Power Cord",
+  "webDir": "web",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

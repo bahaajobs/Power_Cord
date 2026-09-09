@@ -5,7 +5,9 @@
   "type": "module",
   "description": "Local-first control server and web app for re-flashed Korean IoT multi-taps",
   "license": "MIT",
-  "engines": { "node": ">=22.5.0" },
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/src/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/src/index.js",
@@ -15,10 +17,13 @@
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
   },
   "dependencies": {
+    "@capacitor/core": "^6.2.2",
     "mqtt": "^5.15.2",
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/cli": "^6.2.2",
     "aedes": "^0.51.3"
   }
 }

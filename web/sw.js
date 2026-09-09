@@ -3,8 +3,12 @@
 // is exactly the failure this app must not have, so /api/ always goes to the
 // network and the UI says "not connected" when it cannot be reached.
 
-const SHELL = 'powercord-shell-v1';
-const FILES = ['/', '/index.html', '/app.css', '/app.js', '/assets/icon.svg'];
+const SHELL = 'powercord-shell-v2';
+const FILES = [
+  '/', '/index.html', '/app.css', '/app.js', '/assets/icon.svg',
+  '/js/i18n.js', '/js/icons.js', '/js/net.js', '/js/direct.js',
+  '/js/store.js', '/js/history.js', '/js/engine.js', '/js/views.js', '/js/discovery.js',
+];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -22,6 +26,9 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
   if (url.pathname.startsWith('/api/') || url.pathname === '/ws') return;
+  // Requests to the strips themselves are live device state — never cached,
+  // never served from a stale copy.
+  if (url.origin !== self.location.origin) return;
 
   e.respondWith(
     fetch(e.request)

@@ -1,0 +1,132 @@
+# Builds the installable Android APK.
+#
+# The APK cannot be built in every environment — it needs the Android SDK,
+# which GitHub's runners already have. Run this workflow and download the APK
+# from the run's Artifacts section; no Android Studio, no local setup.
+#
+#   Actions → Build Android APK → Run workflow → pick the branch → Run
+#   wait ~4 minutes → Artifacts → powercord-debug-apk
+#
+# The debug APK is signed with Android's debug key, so it installs directly on
+# a phone with "install unknown apps" enabled. That is what you want for
+# testing. A Play Store build needs a real signing key — see the release job.
+
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'web/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - '.github/workflows/android.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  debug-apk:
+    name: Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check the web app parses
+        run: |
+          for f in web/app.js web/js/*.js; do node --check "$f"; done
+
+      - name: Copy the web app into the Android project
+        run: npx cap sync android
+
+      - name: Build
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Name the APK after the build
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/app-debug.apk \
+             "out/powercord-${GITHUB_SHA::7}.apk"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: powercord-debug-apk
+          path: out/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+  # Only runs when a signing key is configured. Without these secrets the job
+  # is skipped, which is the right default: an unsigned release APK will not
+  # install, and a debug APK is what you want for testing anyway.
+  release-apk:
+    name: Signed release APK
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for a signing key
+        id: key
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No ANDROID_KEYSTORE_BASE64 secret — skipping the signed build."
+          fi
+
+      - uses: actions/setup-java@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build and sign
+        if: steps.key.outputs.present == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          npm ci
+          npx cap sync android
+          echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+          cd android
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleRelease \
+            -Pandroid.injected.signing.store.file=app/release.keystore \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+
+      - uses: actions/upload-artifact@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          name: powercord-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30

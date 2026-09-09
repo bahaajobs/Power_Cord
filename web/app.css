@@ -219,7 +219,7 @@ input, select { font: inherit; color: inherit; }
 /* ------------------------------------------------------------------- fab */
 
 .fab {
-  position: fixed; right: max(16px, calc(50% - 264px));
+  position: fixed; inset-inline-end: max(16px, calc(50% - 264px));
   bottom: calc(20px + env(safe-area-inset-bottom));
   display: flex; align-items: center; gap: 10px;
   background: var(--green); color: #04240F;
@@ -319,12 +319,14 @@ svg.chart .avg-label { fill: var(--ink-3); }
 }
 .switch::before { content: ""; position: absolute; inset: -9px -6px; }
 .switch::after {
-  content: ""; position: absolute; top: 3px; left: 3px;
+  content: ""; position: absolute; top: 3px; inset-inline-start: 3px;
   width: 22px; height: 22px; border-radius: 50%; background: var(--ink-3);
   transition: transform .16s, background .16s;
 }
 .switch[aria-checked="true"] { background: var(--green-bg); border-color: var(--green-edge); }
 .switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--green); }
+/* In RTL the knob travels the other way. */
+[dir="rtl"] .switch[aria-checked="true"]::after { transform: translateX(-20px); }
 
 .empty { text-align: center; color: var(--ink-3); padding: 34px 10px; }
 .empty p { margin: 8px 0 0; font-size: 15px; }
@@ -377,13 +379,13 @@ svg.chart .avg-label { fill: var(--ink-3); }
 }
 .toast {
   background: var(--card-2); border: 1px solid var(--line);
-  border-left: 3px solid var(--ink-3);
+  border-inline-start: 3px solid var(--ink-3);
   border-radius: var(--r-sm); padding: 13px 15px; font-size: 14.5px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
   animation: rise .18s ease-out;
 }
-.toast.error { border-left-color: var(--red); }
-.toast.ok { border-left-color: var(--green); }
+.toast.error { border-inline-start-color: var(--red); }
+.toast.ok { border-inline-start-color: var(--green); }
 
 /* --------------------------------------------------------------- banner */
 
@@ -405,3 +407,34 @@ svg.chart .avg-label { fill: var(--ink-3); }
 }
 .brand h1 { margin: 0; font-size: 27px; font-weight: 800; letter-spacing: -.02em; }
 .brand p { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
+
+
+/* ------------------------------------------------------- setup wizard */
+
+.steps { display: flex; gap: 6px; justify-content: center; margin-bottom: 4px; }
+.steps i {
+  display: block; width: 34px; height: 4px; border-radius: 999px;
+  background: var(--line); transition: background .2s;
+}
+.steps i.on { background: var(--green); }
+
+.setup-icon {
+  width: 56px; height: 56px; border-radius: 17px;
+  background: var(--green-bg); border: 1px solid var(--green-edge);
+  color: var(--green); display: grid; place-items: center;
+}
+.setup-icon svg { width: 26px; height: 26px; }
+
+/* ------------------------------------------------------- form details */
+
+.field small {
+  display: block; margin-top: 6px; font-size: 12.5px; line-height: 1.4;
+}
+.ok-text { color: var(--green); font-size: 13px; margin-bottom: 10px; }
+.err-text { color: var(--red); font-size: 13px; margin-bottom: 10px; }
+
+.sheet .sub { color: var(--ink-2); font-size: 14.5px; margin: 0 0 18px; }
+
+/* Arabic sets a slightly larger line height — the script needs the room. */
+[dir="rtl"] body { line-height: 1.6; }
+[dir="rtl"] .strip-id, [dir="rtl"] .mono { letter-spacing: 0; }

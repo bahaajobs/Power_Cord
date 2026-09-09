@@ -8,13 +8,30 @@ Sold in Korea locked to a cloud you cannot reach from Egypt. The hardware is
 fine; the lock is a cloud-account problem, not a silicon one. Re-flash the Wi-Fi
 module with open firmware and everything in this repository takes over.
 
+## The app
+
+An installable **Android app** that talks to each strip **directly** — no
+server, no broker, no cloud. On your Wi-Fi it uses the strip's LAN address;
+from outside, an address your router forwards. It fails over between them on
+its own.
+
+**Getting the APK:** Actions → *Build Android APK* → Run workflow → download
+the artifact. Details in [`docs/14-android-app.md`](docs/14-android-app.md).
+
+English and Arabic with full RTL, unlimited strips, local history that syncs
+with each strip's own energy counters, and a first-time setup guide built in.
+
+A server is still available for fleets and for background schedules
+([`docs/09-backend-manual.md`](docs/09-backend-manual.md)), but it is optional.
+
 ```bash
 git clone https://github.com/bahaajobs/Power_Cord.git
 cd Power_Cord && npm install && npm run demo
 ```
 
-Open **http://localhost:8080**, sign in as `admin` / `powercord`. That runs a
-broker, the server and two simulated strips — the whole system without hardware.
+Open **http://localhost:8080** — that runs a broker, the server and two
+simulated strips, which also expose the same HTTP endpoints a real flashed
+strip does, so direct mode can be exercised with no hardware.
 
 **Published pages:** the [research and plan](https://claude.ai/code/artifact/3cbd0722-eb9d-4782-a16b-624e36bde80e),
 and the [build-and-use manual](https://claude.ai/code/artifact/77a5406d-e0ae-46ae-bd7a-064703f90e56).
@@ -45,12 +62,15 @@ refurbishment work that comes with putting used switchgear back into homes.
 | **[`docs/10-user-manual.md`](docs/10-user-manual.md)** | **Using the app** |
 | **[`docs/11-remote-access.md`](docs/11-remote-access.md)** | **Do you need a server to use it away from home?** |
 | **[`docs/12-test-plan.md`](docs/12-test-plan.md)** | **What can be tested now, and what is gated on hardware** |
+| **[`docs/13-direct-mode.md`](docs/13-direct-mode.md)** | **No-server control, port forwarding, and what it costs** |
+| **[`docs/14-android-app.md`](docs/14-android-app.md)** | **Getting and building the APK** |
 | [`docs/sources.md`](docs/sources.md) | Every external source, with links |
 
 | Code | |
 | --- | --- |
 | [`server/`](server/) | Node 22 server: MQTT bridge, REST + WebSocket API, SQLite, scheduler |
-| [`web/`](web/) | Installable PWA — the control app |
+| [`web/`](web/) | The app: direct + server transports, bilingual, local history |
+| [`android/`](android/) | Capacitor Android project — the APK is built from this |
 | [`sim/`](sim/) | Development broker and virtual strips, so the stack runs with no hardware |
 | [`test/`](test/) | Unit tests plus a self-booting end-to-end suite |
 | [`firmware/esphome/`](firmware/esphome/) | Starter configs for both likely chipsets |

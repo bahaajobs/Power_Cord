@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The strips speak plain HTTP and always will: OpenBeken and ESPHome serve
+  their command endpoint over http, and nothing in this product class ships a
+  certificate. Android 9 and later block cleartext by default, so without this
+  the app cannot reach a strip at all.
+
+  Cleartext is permitted for any host rather than only private ranges, because
+  reaching a strip from outside the house goes through a public hostname (a
+  DDNS name pointing at a forwarded port) which is not in a private range.
+
+  What this costs: traffic to the strips is unencrypted, so anyone on the path
+  can read it and forge commands. On your own Wi-Fi that path is your house.
+  Across the internet it is everyone in between — which is why the manual
+  recommends a VPN or a server with TLS over a bare port forward, and why the
+  strip must have a username and password set either way.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
