@@ -40,6 +40,64 @@ npm run demo      # then open http://localhost:8080  (admin / powercord)
 
 **Stop condition:** all of A1–A10 pass. A11 is desirable but not blocking.
 
+---
+
+## Stage A2 — The Android app and direct mode (ready now, needs a phone)
+
+Get the APK from Actions → *Build Android APK* → run → download the artifact
+([`14-android-app.md`](14-android-app.md)). Install it, then, with the demo
+stack still running on the laptop:
+
+| # | Check | Pass |
+| --- | --- | --- |
+| A2.1 | The APK installs and opens | ☐ |
+| A2.2 | First launch shows the five-step setup guide | ☐ |
+| A2.3 | Add a strip by address — for the simulator use the laptop's LAN IP and port 8101 | ☐ |
+| A2.4 | **Test connection** reports the outlet count before you save | ☐ |
+| A2.5 | The strip shows ONLINE and reads *Local · direct* | ☐ |
+| A2.6 | Toggling an outlet switches the simulated strip (watch the laptop's log) | ☐ |
+| A2.7 | Add a second strip (port 8102). Both are listed and both poll | ☐ |
+| A2.8 | Settings → Language → العربية mirrors the whole layout, right to left | ☐ |
+| A2.9 | Arabic shows Arabic-Indic numerals; addresses stay left-to-right | ☐ |
+| A2.10 | Switch back to English; the choice survives closing and reopening the app | ☐ |
+| A2.11 | Energy screen fills in over a few minutes and survives a restart | ☐ |
+| A2.12 | Stop the simulator → strips go OFFLINE and commands are refused | ☐ |
+| A2.13 | Kill the laptop's *server* but leave the simulator running → direct mode still works, proving no server is involved | ☐ |
+
+**A2.13 is the point of the whole rewrite.** If it fails, direct mode is not
+actually direct.
+
+Then, with real flashed hardware (after Stage B):
+
+| # | Check | Pass |
+| --- | --- | --- |
+| A2.14 | Scan my network finds the strip without typing an address | ☐ |
+| A2.15 | Set a username and password on the strip; the app still works with them entered, and fails clearly without | ☐ |
+| A2.16 | Forward a port, set the outside address, turn Wi-Fi off on the phone → control works over mobile data | ☐ |
+| A2.17 | Turn Wi-Fi back on → it returns to the local address on its own | ☐ |
+
+Read the security section of [`13-direct-mode.md`](13-direct-mode.md) before
+A2.16. A forwarded strip is on the public internet in clear text.
+
+### What Stage A2 has already been verified to do
+
+Driven in a browser against the HTTP simulator, which answers exactly as
+OpenBeken does:
+
+- setup wizard → add device → strip online → toggle switches the real device
+- a change made *at* the device appears in the app
+- two strips added and polled independently
+- history written and reconciled from the device's own counters (`source:
+  device`, including the after-midnight *Yesterday* correction)
+- Arabic: `dir=rtl`, mirrored layout, Arabic-Indic numerals, no horizontal
+  overflow, default outlet names following the language
+- devices and language survive a restart
+- unreachable strip → OFFLINE and an explicit banner
+- 9 automated tests over the direct transport, including LAN→remote failover
+
+**Not verified:** the APK itself. It has never been compiled or installed —
+this environment cannot reach `dl.google.com` for the Android SDK.
+
 ### What Stage A has already been verified to do
 
 Run in this session, on simulated hardware:
@@ -139,6 +197,8 @@ Do not scale past three until two weeks have passed without an incident.
 | | Status |
 | --- | --- |
 | Server and app, on simulated hardware | **Ready to test now** |
+| Direct mode, multi-strip, Arabic, local history | **Verified in a browser against the simulator** |
+| The Android APK | **Never built — CI is written but unproven** |
 | Resilience: broker loss, server restart, reconnect | **Verified** |
 | Phone layout and touch behaviour | **Verified at 360 px, Chromium only** |
 | Docker / TLS / VPS deployment | **Written, never run** |
