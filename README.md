@@ -15,8 +15,10 @@ server, no broker, no cloud. On your Wi-Fi it uses the strip's LAN address;
 from outside, an address your router forwards. It fails over between them on
 its own.
 
-**Getting the APK:** Actions → *Build Android APK* → Run workflow → download
-the artifact. Details in [`docs/14-android-app.md`](docs/14-android-app.md).
+**Getting the APK:** [Actions → Build Android APK](https://github.com/bahaajobs/Power_Cord/actions/workflows/android.yml)
+→ open the latest run → download the **powercord-debug-apk** artifact. It
+installs directly on a phone. Details in
+[`docs/14-android-app.md`](docs/14-android-app.md).
 
 English and Arabic with full RTL, unlimited strips, local history that syncs
 with each strip's own energy counters, and a first-time setup guide built in.

@@ -9,7 +9,8 @@ to CORS. That is what makes direct-to-strip control possible at all.
 
 ## Getting the APK without installing anything
 
-The build needs the Android SDK. Rather than setting that up, let GitHub do it:
+The build needs the Android SDK. Rather than setting that up, let GitHub do it —
+this is already wired up and has been run successfully:
 
 1. Open the repository on GitHub → **Actions**
 2. Pick **Build Android APK** in the left sidebar
@@ -118,9 +119,9 @@ time series runs earliest-to-latest regardless.
   timers, or run the server.
 - **Network scanning is Android-only**, for the same CORS reason.
 - **No iOS build yet.** Capacitor supports it; nobody has run it.
-- **The APK has never been built or installed by the author of this
-  repository** — the build environment could not reach `dl.google.com` to fetch
-  the Android SDK. The project is generated and configured, and the CI workflow
-  is written against runners that do have the SDK, but the first person to run
-  it is finding out for the first time. If it fails, the log will say why, and
-  it will almost certainly be a version pin rather than anything structural.
+- **The APK builds, but has never been installed or run on a phone.** CI
+  produced a 3.4 MB debug APK in about 90 seconds on the first attempt, so the
+  Android project and the workflow are known-good. What nobody has done yet is
+  install it and drive it against hardware — the app's behaviour on a real
+  device is unverified, and the first person to open it is finding out for the
+  first time.

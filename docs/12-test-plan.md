@@ -95,8 +95,9 @@ OpenBeken does:
 - unreachable strip → OFFLINE and an explicit banner
 - 9 automated tests over the direct transport, including LAN→remote failover
 
-**Not verified:** the APK itself. It has never been compiled or installed —
-this environment cannot reach `dl.google.com` for the Android SDK.
+**The APK builds.** CI produced a 3.4 MB debug APK on the first run, in about
+90 seconds. What is *not* verified is the app running on a phone: nobody has
+installed it yet. That is Stage A2.1 onwards, and it is the next thing to do.
 
 ### What Stage A has already been verified to do
 
@@ -198,7 +199,7 @@ Do not scale past three until two weeks have passed without an incident.
 | --- | --- |
 | Server and app, on simulated hardware | **Ready to test now** |
 | Direct mode, multi-strip, Arabic, local history | **Verified in a browser against the simulator** |
-| The Android APK | **Never built — CI is written but unproven** |
+| The Android APK | **Builds in CI; never installed on a phone** |
 | Resilience: broker loss, server restart, reconnect | **Verified** |
 | Phone layout and touch behaviour | **Verified at 360 px, Chromium only** |
 | Docker / TLS / VPS deployment | **Written, never run** |
