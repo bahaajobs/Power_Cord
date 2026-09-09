@@ -66,10 +66,12 @@ refurbishment work that comes with putting used switchgear back into homes.
 | **[`docs/12-test-plan.md`](docs/12-test-plan.md)** | **What can be tested now, and what is gated on hardware** |
 | **[`docs/13-direct-mode.md`](docs/13-direct-mode.md)** | **No-server control, port forwarding, and what it costs** |
 | **[`docs/14-android-app.md`](docs/14-android-app.md)** | **Getting and building the APK** |
+| [`docs/15-agent-handoff.md`](docs/15-agent-handoff.md) | Brief for handing this project to another AI |
 | [`docs/sources.md`](docs/sources.md) | Every external source, with links |
 
 | Code | |
 | --- | --- |
+| [`CLAUDE.md`](CLAUDE.md) | Working conventions — read before changing anything |
 | [`server/`](server/) | Node 22 server: MQTT bridge, REST + WebSocket API, SQLite, scheduler |
 | [`web/`](web/) | The app: direct + server transports, bilingual, local history |
 | [`android/`](android/) | Capacitor Android project — the APK is built from this |
