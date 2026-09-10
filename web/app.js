@@ -395,7 +395,15 @@ document.addEventListener('click', async (ev) => {
         confirmSheet({
           title: t('confirm.allOffTitle'), sub: t('confirm.allOffBody'),
           yes: t('confirm.allOffYes'), danger: true,
-        }, async () => { await engine.allOffEverywhere(); toast(t('ok.allOff'), 'ok'); });
+        }, async () => {
+          const results = await engine.allOffEverywhere();
+          const failed = results.filter((r) => r.status === 'rejected');
+          if (failed.length > 0) {
+            toast(t('err.noConfirm'), 'error');
+          } else {
+            toast(t('ok.allOff'), 'ok');
+          }
+        });
         break;
 
       case 'reveal':

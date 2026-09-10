@@ -16,8 +16,10 @@ Original drawings, in [`../hardware/schematics/`](../hardware/schematics/):
 | [`02-relay-driver.svg`](../hardware/schematics/02-relay-driver.svg) | One relay channel: GPIO → base resistor → transistor → coil, flyback diode, contact rating, isolation barrier |
 | [`03-metering-front-end.svg`](../hardware/schematics/03-metering-front-end.svg) | BL0937 shunt and divider, the multiplexed CF1 output, why calibration and not frequency is what matters |
 | [`04-system-architecture.svg`](../hardware/schematics/04-system-architecture.svg) | Software: strips → broker → server → phone, and where remote access comes from |
+| [`05-cb3s-flashing-pinout.svg`](../hardware/schematics/05-cb3s-flashing-pinout.svg) | CB3S / BK7231N module pinout, 3.3V USB-UART wiring, CEN bootloader handshake, and mains isolation |
 
 ![Mains topology](../hardware/schematics/01-mains-topology.svg)
+![CB3S Pinout & UART Flashing Hookup](../hardware/schematics/05-cb3s-flashing-pinout.svg)
 
 ---
 
@@ -30,6 +32,7 @@ hardware, not your hardware.
 | --- | --- | --- | --- |
 | Tuya XS-A26 power strip, 4 AC + 4 USB | CB3S / **BK7231N** | none | The closest published match to a 4-outlet + USB strip. PCB marked `YX-B3S1-VER00`. |
 | Generic Wi-Fi smart power strip, model **SM-SO301K** (4 outlets + 5 V USB) | CB3S / **BK7231N** | none | Flashed over UART: temporary wires to 3V3, GND, TXD, RXD, CEN shorted to GND during the handshake. |
+| **LG U+ MTTL-W01** (4 outlets + 2 USB, Korean IoT 멀티탭) | Custom `40-LGSTAP-MAE2G` / **Realtek RTL8711AF** | Dual 2mΩ shunts per outlet + dedicated ICs | **The exact hardware in hand.** Manufactured by TCL Technoly Huizhou. RTL8711AF (Ameba1 Cortex-M3). Latching relays (FANHAR W35L-2AT-L2 / HFE39 20A). InnoSwitch INN2105K SMPS. Sub-board connected via FFC ribbon cable with I2C (`SDA2`/`SCL2`). |
 | Action LSC SmartPlug 3202087 | CB2S / **BK7231N** | **BL0937** | Single socket, but the most completely documented metering pin map in this family. |
 | Elworks smart dual socket | CB2S / **BK7231N** | **BL0937** | Two-gang variant of the same design. |
 | AOFO smart power strip C733 | CB2S / **BK7231N** | via MCU | **TuyaMCU** — a second MCU owns the relays. This is the expensive branch of the decision tree. |
@@ -38,6 +41,47 @@ hardware, not your hardware.
 Sources for all of these are listed in [`sources.md`](sources.md), with a note
 on which ones this research could reach directly and which came through search
 summaries only.
+
+---
+
+## Detailed Profile: LG U+ MTTL-W01 (Hardware in Hand)
+
+The physical batch of smart power strips in Egypt has been confirmed as the **MTTL-W01**:
+
+- **Model Label**: MTTL-W01 (콘센트 직류전원장치)
+- **Carrier / Platform**: LG U+ IoT (IoT 멀티탭)
+- **Contract Manufacturer**: TCL Technoly Electronics (Huizhou) Co., Ltd.
+- **KC Certification**: HU04139-17002A / MSIP-CMM-TAV-MTTL-W01
+- **Power Rating**: 250(220)V~, 60Hz, 16A max (3,520W).
+- **Physical Layout**: 4 Schuko/Korean grounded outlets (each with an individual tactile button and dual-color LED), 2 USB charging ports, 1 master power button with LED ring, 1 Wi-Fi indicator LED.
+
+### Internal Board Breakdown
+1. **Main Power & Relay Board (`40-LGSTAP-PWI2G`, 1.6mm)**:
+   - **Relays**: 4x **FANHAR W35L-2AT-L2 DC5V 20A 250VAC TV-8** (or Hongfa **HFE39-5/2HT-L2**). These are **latching relays** (magnetic latching) which maintain their physical switch state through power losses and only draw power during coil transition pulses.
+   - **Switching Logic**: Relays fire sequentially (staggered) on master toggle to avoid drawing high surge current from the internal 5V supply.
+   - **Power Supply**: High-reliability offline flyback switcher driven by a Power Integrations **INN2105K** (InnoSwitch-CE).
+   - **Energy Metering**: Independent current sensing on all 4 channels using pairs of parallel `2m0` (2 milliohm) surface-mount shunts (1 mΩ effective) feeding individual 16-pin SOIC metering/driver ICs.
+
+2. **Wi-Fi Sub-Board (`40-LGSTAP-MAE2G`, 1.2mm)**:
+   - **SoC**: **Realtek RTL8711AF** (Realtek Ameba1 family, 32-bit ARM Cortex-M3 core @ 166 MHz, 1MB ROM, 512KB SRAM, 802.11b/g/n).
+   - **Interconnect**: Connects to the main power board via a multi-conductor Flat Flexible Cable (FFC) ribbon cable at connector `XP3`.
+   - **Bus Signals**: The FFC exposes `GND1`, `GND2`, `GND3`, `DC3_3`, `VCC_5V`, `PW_IN18_5V`, `KEY3`, `KEY4`, and **`SDA2` / `SCL2` (I2C bus)**.
+   - **Test Points on PCB**:
+     - **JTAG**: Dedicated pads for `JTAG_TMS1`, `JTAG_CLK1`, `JTAG_TDO1`, `JTAG_TDI1`, `JTAG_TRST1`.
+     - **UART**: Labeled pads for `UART_IN`, `UART_OUT`, `UART_LOG_IN1`, `UART_LOG_OUT1`, `VD33`, `GND`.
+     - **I2C / LEDs**: Labeled pads for `LED-SCK1`, `LED-SDA1`, `SDA1`, `SCL1`, `KEY1`, `KEY2`, `LED-1`, `LED2`.
+
+3. **USB Daughterboard (`40-LGSTAP-USE2G`)**:
+   - Dual Type-A USB jacks delivering 5V/2A total from the main SMPS.
+
+### Firmware & Integration Status
+> [!IMPORTANT]
+> **SoC Architecture Note**: The SoC is a **Realtek RTL8711AF**, NOT a Beken BK7231 or ESP8285. Standard OpenBeken and ESPHome/LibreTiny builds do not natively target the RTL8711AF (due to Ameba1 RAM and non-XIP architecture).
+> 
+> Three control pathways exist for this hardware:
+> 1. **Local Cloud Impersonation / DNS Interception (No-Flash)**: The stock firmware communicates locally over TCP (port 30300) and attempts to reach LG U+ servers. Redirecting the cloud domain via local DNS allows our server to emulate the carrier backend and command the strip without opening it.
+> 2. **Daughterboard Replacement (Hardware Modular Swap)**: Because `40-LGSTAP-MAE2G` attaches via a detachable FFC ribbon cable carrying standard 3.3V power and I2C lines (`SDA2`/`SCL2`), a custom ESP32 or BK7231 daughterboard can be patched into the ribbon cable to drive the motherboard directly.
+> 3. **Native Ameba JTAG/UART Development**: Writing firmware using the Realtek Ameba1 SDK flashed via JTAG (`TMS1`/`CLK1`/`TDO1`/`TDI1`) or `UART_LOG`.
 
 ---
 
@@ -136,3 +180,10 @@ naming convention and the manifest are in
 [`../hardware/photos/README.md`](../hardware/photos/README.md). Photograph the
 first unit you open before you change anything — it is the only record of how it
 left the factory, and you will want it when unit 40 does not match unit 1.
+
+### Reference teardown photo galleries (External):
+To inspect high-resolution photographs of identical internal PCB layouts without redistributing copyrighted media:
+- [Tuya 4AC + 4USB Power Strip (YX-B3S1-VER00) Teardown Gallery on Elektroda](https://www.elektroda.com/rtvforum/topic3908093.html) — Shows PCB component and solder sides, relay groupings, CB3S daughterboard placement, and traces.
+- [Tuya SM-SO301K 4-Outlet Smart Strip Teardown & UART Pinouts](https://www.elektroda.com/rtvforum/topic3866123.html) — Shows UART flashing solder points on CB3S, CEN reset line, and internal bus bars.
+- [Tuya CB2S / BL0937 Power Metering Teardown on Home Assistant Community](https://community.home-assistant.io/) — Close-ups of the 1 mΩ shunt resistor and BL0937 metering IC package.
+- [LibreTiny CB3S Module Datasheet & Dimensions](https://libretiny.eu/) — Detailed pinout, mechanical drawings, and pin pitch.

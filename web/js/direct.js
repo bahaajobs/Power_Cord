@@ -113,7 +113,7 @@ const numOr = (v) => (v === undefined || v === null || v === '' || Number.isNaN(
 export async function setChannel(device, channel, on) {
   const { data } = await command(device, `POWER${channel} ${on ? 'ON' : 'OFF'}`);
   const key = Object.keys(data || {}).find((k) => new RegExp(`^POWER${channel}$`, 'i').test(k))
-    || Object.keys(data || {}).find((k) => /^POWER/i.test(k));
+    || (channel === 1 ? Object.keys(data || {}).find((k) => /^POWER$/i.test(k)) : null);
   // The reply carries the resulting state, so the caller confirms against the
   // device rather than assuming the command took.
   return key ? isOn(data[key]) : null;

@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" width="920" height="540" role="img"
+     aria-label="CB3S BK7231N module pinout and safe bench UART flashing hookup. The strip is completely unplugged from mains.">
+  <title>CB3S / BK7231N Module Pinout &amp; Safe UART Flashing Hookup</title>
+  <rect width="920" height="540" fill="#FFFFFF"/>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#44506A"/>
+    </marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#B4432B"/>
+    </marker>
+    <marker id="arr-grn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1F8E55"/>
+    </marker>
+  </defs>
+  <style>
+    .t   { font-family: "DejaVu Sans Mono", monospace; fill: #24304A; }
+    .b   { font-weight: 700; }
+    .s   { font-size: 11px; fill: #5C6880; }
+    .box { fill: #F2F5F9; stroke: #44506A; stroke-width: 1.2; }
+    .bxl { fill: #FBEDE9; stroke: #B4432B; stroke-width: 1.3; }
+    .bxg { fill: #EDF7F1; stroke: #1F8E55; stroke-width: 1.3; }
+    .bxw { fill: #FFF9E6; stroke: #C08A15; stroke-width: 1.3; }
+    .mod { fill: #2B3A4F; stroke: #182230; stroke-width: 1.5; }
+    .pad { fill: #D9A036; stroke: #8F6517; stroke-width: 0.8; }
+    .wire-pwr { stroke: #B4432B; stroke-width: 2.2; fill: none; }
+    .wire-gnd { stroke: #24304A; stroke-width: 2.2; fill: none; }
+    .wire-tx  { stroke: #C08A15; stroke-width: 1.8; fill: none; }
+    .wire-rx  { stroke: #1F8E55; stroke-width: 1.8; fill: none; }
+    .wire-cen { stroke: #5B6B82; stroke-width: 1.6; fill: none; stroke-dasharray: 4 3; }
+  </style>
+
+  <!-- Header -->
+  <text class="t b" x="20" y="26" font-size="16">CB3S / BK7231N Wi-Fi Module — Pinout &amp; Safe 3.3V UART Flashing</text>
+  <text class="s" x="20" y="44">Bench procedure: mains cord must be completely UNPLUGGED. Module is powered from a 3.3V USB-UART adapter alone.</text>
+
+  <!-- Module Body (Left) -->
+  <g transform="translate(40, 70)">
+    <!-- PCB Base -->
+    <rect class="mod" x="0" y="0" width="180" height="250" rx="4"/>
+    
+    <!-- Antenna Keepout Zone -->
+    <rect x="10" y="10" width="160" height="42" rx="2" fill="#1C2636" stroke="#3D506B" stroke-width="1"/>
+    <path d="M20 31 H160 M30 18 V44 M50 18 V44 M70 18 V44 M90 18 V44 M110 18 V44 M130 18 V44 M150 18 V44" stroke="#D9A036" stroke-width="0.8" opacity="0.4"/>
+    <text class="t b" x="90" y="35" font-size="10" fill="#8898AA" text-anchor="middle">PCB ANTENNA</text>
+
+    <!-- RF Shield Can -->
+    <rect x="16" y="62" width="148" height="170" rx="3" fill="#384961" stroke="#607694" stroke-width="1.2"/>
+    <text class="t b" x="90" y="98" font-size="14" fill="#FFFFFF" text-anchor="middle">Tuya CB3S</text>
+    <text class="t" x="90" y="118" font-size="11" fill="#A4B3C6" text-anchor="middle">Beken BK7231N</text>
+    <text class="s" x="90" y="136" fill="#8898AA" text-anchor="middle">32-bit ARM968E-S</text>
+    <text class="s" x="90" y="152" fill="#8898AA" text-anchor="middle">2.4 GHz Wi-Fi + BLE</text>
+
+    <!-- Left Edge Pins (1 to 6) -->
+    <!-- 1: CEN -->
+    <rect class="pad" x="-4" y="80" width="10" height="12" rx="1"/>
+    <text class="t b" x="12" y="90" font-size="9" fill="#FFFFFF">1 CEN</text>
+    
+    <!-- 2: P26 -->
+    <rect class="pad" x="-4" y="106" width="10" height="12" rx="1"/>
+    <text class="t" x="12" y="116" font-size="9" fill="#C4D1DF">2 P26</text>
+
+    <!-- 3: P24 -->
+    <rect class="pad" x="-4" y="132" width="10" height="12" rx="1"/>
+    <text class="t" x="12" y="142" font-size="9" fill="#C4D1DF">3 P24</text>
+
+    <!-- 4: P6 (PWM0) -->
+    <rect class="pad" x="-4" y="158" width="10" height="12" rx="1"/>
+    <text class="t" x="12" y="168" font-size="9" fill="#C4D1DF">4 P6</text>
+
+    <!-- 5: P7 (PWM1) -->
+    <rect class="pad" x="-4" y="184" width="10" height="12" rx="1"/>
+    <text class="t" x="12" y="194" font-size="9" fill="#C4D1DF">5 P7</text>
+
+    <!-- 6: P8 (PWM2) -->
+    <rect class="pad" x="-4" y="210" width="10" height="12" rx="1"/>
+    <text class="t" x="12" y="220" font-size="9" fill="#C4D1DF">6 P8</text>
+
+    <!-- Right Edge Pins (11 down to 7) -->
+    <!-- 11: 3V3 -->
+    <rect class="pad" x="174" y="80" width="10" height="12" rx="1"/>
+    <text class="t b" x="168" y="90" font-size="9" fill="#FF8870" text-anchor="end">3V3 11</text>
+
+    <!-- 10: GND -->
+    <rect class="pad" x="174" y="106" width="10" height="12" rx="1"/>
+    <text class="t b" x="168" y="116" font-size="9" fill="#FFFFFF" text-anchor="end">GND 10</text>
+
+    <!-- 9: RX1 (P10) -->
+    <rect class="pad" x="174" y="132" width="10" height="12" rx="1"/>
+    <text class="t b" x="168" y="142" font-size="9" fill="#6EE7B7" text-anchor="end">RX1(P10) 9</text>
+
+    <!-- 8: TX1 (P11) -->
+    <rect class="pad" x="174" y="158" width="10" height="12" rx="1"/>
+    <text class="t b" x="168" y="168" font-size="9" fill="#FCD34D" text-anchor="end">TX1(P11) 8</text>
+
+    <!-- 7: P9 (PWM3) -->
+    <rect class="pad" x="174" y="184" width="10" height="12" rx="1"/>
+    <text class="t" x="168" y="194" font-size="9" fill="#C4D1DF" text-anchor="end">P9 7</text>
+  </g>
+
+  <!-- USB-to-UART Adapter (Middle Right) -->
+  <g transform="translate(560, 80)">
+    <rect class="box" x="0" y="0" width="220" height="230" rx="5"/>
+    <rect x="0" y="0" width="220" height="32" rx="5" fill="#44506A"/>
+    <text class="t b" x="110" y="21" font-size="12" fill="#FFFFFF" text-anchor="middle">USB-UART ADAPTER (3.3 V)</text>
+    <text class="s" x="110" y="50" text-anchor="middle">CP2102 / CH340 / FT232R</text>
+    <text class="s" x="110" y="66" text-anchor="middle" fill="#B4432B">VCC jumper MUST be set to 3.3V!</text>
+
+    <!-- Adapter Terminals -->
+    <!-- 3V3 Pin -->
+    <circle cx="24" cy="95" r="5" fill="#B4432B"/>
+    <text class="t b" x="38" y="99" font-size="11" fill="#B4432B">3V3 (3.3 V Out)</text>
+
+    <!-- GND Pin -->
+    <circle cx="24" cy="125" r="5" fill="#24304A"/>
+    <text class="t b" x="38" y="129" font-size="11">GND</text>
+
+    <!-- TXD Pin -->
+    <circle cx="24" cy="155" r="5" fill="#C08A15"/>
+    <text class="t b" x="38" y="159" font-size="11" fill="#C08A15">TXD (Transmit)</text>
+
+    <!-- RXD Pin -->
+    <circle cx="24" cy="185" r="5" fill="#1F8E55"/>
+    <text class="t b" x="38" y="189" font-size="11" fill="#1F8E55">RXD (Receive)</text>
+
+    <text class="s" x="110" y="218" text-anchor="middle">Connects to Laptop USB</text>
+  </g>
+
+  <!-- Wiring Connections (Module Right side to Adapter Left side) -->
+  <!-- 3V3 Line -->
+  <path class="wire-pwr" d="M224 156 H370 V175 H560" marker-end="url(#arr-red)"/>
+  <text class="t b" x="380" y="170" font-size="10" fill="#B4432B">3.3 V Power (VCC)</text>
+
+  <!-- GND Line -->
+  <path class="wire-gnd" d="M224 182 H350 V205 H560" marker-end="url(#arr)"/>
+  <text class="t b" x="380" y="200" font-size="10" fill="#24304A">Common Ground (GND)</text>
+
+  <!-- TXD to RX1 Line -->
+  <path class="wire-tx" d="M560 235 H390 V208 H224" marker-end="url(#arr)"/>
+  <text class="t b" x="380" y="230" font-size="10" fill="#C08A15">TXD → RX1 (P10)</text>
+
+  <!-- RXD from TX1 Line -->
+  <path class="wire-rx" d="M224 234 H360 V265 H560" marker-end="url(#arr-grn)"/>
+  <text class="t b" x="380" y="260" font-size="10" fill="#1F8E55">TX1 (P11) → RXD</text>
+
+  <!-- CEN Reset Handshake Wiring (Module Pin 1 to Ground button) -->
+  <path class="wire-cen" d="M36 156 H16 V310 H300 V182 H224"/>
+  <rect class="box" x="80" y="295" width="130" height="30" rx="3"/>
+  <text class="t b" x="145" y="314" font-size="10" text-anchor="middle">CEN → GND (Tap)</text>
+  <text class="s" x="145" y="340" text-anchor="middle">Momentary short to GND</text>
+  <text class="s" x="145" y="354" text-anchor="middle">triggers bootloader sync</text>
+
+  <!-- Bottom Details Panels -->
+
+  <!-- Panel 1: Bootloader Handshake Protocol -->
+  <g transform="translate(40, 360)">
+    <rect class="bxg" x="0" y="0" width="370" height="155" rx="4"/>
+    <text class="t b" x="16" y="24" font-size="12" fill="#1F8E55">Bootloader Handshake Timing</text>
+    <text class="t" x="16" y="48" font-size="11">1. Start flasher: <tspan class="b">ltchiptool</tspan> or <tspan class="b">BK7231 Flasher</tspan></text>
+    <text class="t" x="16" y="68" font-size="11">2. Flasher begins sending baud sync pulses</text>
+    <text class="t" x="16" y="88" font-size="11">3. Momentarily bridge <tspan class="b">CEN</tspan> pin to <tspan class="b">GND</tspan> (&lt;0.5 s)</text>
+    <text class="t" x="16" y="108" font-size="11">4. Chip resets into ROM bootloader mode</text>
+    <text class="t" x="16" y="128" font-size="11">5. Dump stock flash first, then write OpenBeken</text>
+  </g>
+
+  <!-- Panel 2: Mains Warning & Isolation -->
+  <g transform="translate(430, 360)">
+    <rect class="bxl" x="0" y="0" width="450" height="155" rx="4"/>
+    <text class="t b" x="16" y="24" font-size="12" fill="#B4432B">CRITICAL MAINS SAFETY (Non-Negotiable #1 &amp; #2)</text>
+    <text class="t" x="16" y="48" font-size="11" fill="#B4432B">■ UNPLUG MAINS CORD completely before opening case.</text>
+    <text class="t" x="16" y="68" font-size="11">■ Never connect 220V while UART wires are attached.</text>
+    <text class="t" x="16" y="88" font-size="11">■ Module logic is 3.3V ONLY. 5V input will destroy BK7231N.</text>
+    <text class="t" x="16" y="108" font-size="11">■ Verify relay clicks with 3.3V logic before mains test.</text>
+    <text class="t" x="16" y="128" font-size="11" fill="#5C6880">■ Remember: Switched OFF does NOT mean isolated (Live only).</text>
+  </g>
+</svg>
