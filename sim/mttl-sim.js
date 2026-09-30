@@ -140,6 +140,17 @@ if (process.env.PC_MTTL_SIM_BUTTONS !== '0') {
   }, Number(process.env.PC_MTTL_SIM_BUTTON_MS || 45_000));
 }
 
+// Deterministic master press for tests: one event on channel 0, once.
+if (process.env.PC_MTTL_SIM_MASTER_AFTER_MS) {
+  setTimeout(() => {
+    const s = strips[0];
+    const on = !s.outlets.every((o) => o.on);
+    for (const o of s.outlets) o.on = on;
+    send(s, `up:event:onoff:0:${on ? 'on' : 'off'}`);
+    console.log(`[mttl-sim] ${s.mac} MASTER BUTTON -> ${on ? 'ON' : 'off'}`);
+  }, Number(process.env.PC_MTTL_SIM_MASTER_AFTER_MS));
+}
+
 console.log(`[mttl-sim] ${count} stock-firmware strip(s) dialling ${host}:${port}`);
 console.log(`[mttl-sim] MACs: ${strips.map((s) => s.mac).join(', ')}`);
 

@@ -229,8 +229,10 @@ function handleLine(line, ip, socket, stripId) {
     for (const c of channels) if (applyState(stripId, c, on)) changed = true;
     recordEvent('mttl.button', stripId, `channel ${ch} -> ${on ? 'on' : 'off'}`);
     if (changed) onChange();
-    // Ask for the authoritative picture rather than trusting the event alone.
-    send(sessions.get(stripId)?.socket ?? { writable: false }, 'up:getinfo:all');
+    // The event says what changed; getinfo says what is true. With latching
+    // relays driven by a momentary button, a press the firmware did not fully
+    // apply would otherwise leave us confidently wrong, so ask.
+    send(socket, 'up:getinfo:all');
     return stripId;
   }
 

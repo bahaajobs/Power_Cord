@@ -161,6 +161,27 @@ detection, not assumption. A strip reports `perOutletMetering: true` only when
 it actually delivers per-channel readings; the rule still holds for every strip
 that does not.
 
+**The buttons are momentary, and the firmware is in the middle.** Each outlet's
+tactile button is an MCU *input* (`KEY1`..`KEY4` — two of them reach the Wi-Fi
+board over the FFC ribbon), not a switch wired to the relay. The firmware reads
+the press and pulses the latching coil, most likely through the `SDA2`/`SCL2`
+I2C bus on the same ribbon.
+
+Three consequences that shape the software:
+
+- **The strip's state changes with no command from us, at any moment.** The
+  server never assumes; it takes `up:event:onoff:` as a hint and immediately
+  asks `up:getinfo:all` for the truth. An event says what changed; getinfo says
+  what is true.
+- **A "lock" can never block the physical button.** Blocking it would have to
+  happen in firmware, between the KEY input and the relay pulse — and that is
+  stock firmware we do not control. The app's lock stops *the app* switching an
+  outlet, which is what the UI says in both languages, and nothing more.
+- **Toggling everything is staggered by the device**, so the relays fire
+  sequentially rather than loading the small DC supply at once. Our "all"
+  command is a loop over channels anyway, since the protocol has no
+  `up:onoff:0`.
+
 **The relays are magnetic latching, and that is a safety fact.** They hold their
 contact state mechanically, need only a ~10–20 ms pulse to toggle, and draw no
 coil current at rest. The consequence: **an outlet that was on comes back on
