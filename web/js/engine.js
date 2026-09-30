@@ -128,6 +128,7 @@ export async function setOutlet(deviceId, channel, want, { onRevert } = {}) {
   clearPending(deviceId, channel);
 
   const rt = runtime.get(deviceId) || { channels: {} };
+  const prevVal = rt.channels?.[channel] ?? false;
   rt.channels = { ...rt.channels, [channel]: want };
   runtime.set(deviceId, rt);
 
@@ -135,6 +136,10 @@ export async function setOutlet(deviceId, channel, want, { onRevert } = {}) {
     want,
     timer: setTimeout(async () => {
       pending.delete(key);
+      // Put the switch back where it really was before re-reading: if the
+      // device is unreachable the refresh cannot correct it, and leaving the
+      // optimistic value standing is exactly the failure rule 3 forbids.
+      rollback(deviceId, channel, want, prevVal);
       await refreshOne(d);
       onRevert?.();
       emit();
@@ -151,15 +156,23 @@ export async function setOutlet(deviceId, channel, want, { onRevert } = {}) {
       cur.channels = { ...cur.channels, [channel]: confirmed };
       cur.online = true;
       runtime.set(deviceId, cur);
-      if (confirmed === want) clearPending(deviceId, channel);
+      clearPending(deviceId, channel);
+      if (confirmed !== want) onRevert?.();
     }
     emit();
   } catch (err) {
     clearPending(deviceId, channel);
+    rollback(deviceId, channel, want, prevVal);
     await refreshOne(d);
     emit();
     throw err;
   }
+}
+
+/** Undo an optimistic change that was never confirmed. */
+function rollback(deviceId, channel, want, prevVal) {
+  const cur = runtime.get(deviceId);
+  if (cur?.channels && cur.channels[channel] === want) cur.channels[channel] = prevVal;
 }
 
 /** Re-read one device through whichever transport the current mode uses. */
@@ -171,8 +184,17 @@ async function refreshOne(device) {
 export async function setAllOutlets(deviceId, on) {
   const d = deviceById(deviceId);
   if (!d) return;
-  if (inServerMode()) await server.setAll(d.serverId, on);
-  else await direct.setAll(d, d.outlets.filter((o) => !o.isUsb).map((o) => o.idx), on);
+  // A locked outlet is excluded from "all": locking it means the app does not
+  // switch it, and a batch command is still the app switching it.
+  const channels = d.outlets.filter((o) => !o.isUsb && !o.locked).map((o) => o.idx);
+  if (channels.length === 0) return;
+  if (inServerMode()) {
+    // Server mode has no batch endpoint that honours locks, so drive the
+    // unlocked channels individually rather than switching a locked one.
+    for (const c of channels) await server.setChannel(d.serverId, c, on);
+  } else {
+    await direct.setAll(d, channels, on);
+  }
   await refreshOne(d);
   emit();
 }
@@ -226,6 +248,10 @@ function fire(s) {
   store.updateSchedule(s.id, { lastFired: Date.now() });
   const d = deviceById(s.deviceId);
   if (!d) return;
+  if (s.outletIdx != null) {
+    const o = d.outlets.find((x) => x.idx === s.outletIdx);
+    if (o?.locked) return; // Do not switch locked outlet
+  }
   const run = s.outletIdx == null
     ? setAllOutlets(s.deviceId, !!s.action)
     : setOutlet(s.deviceId, s.outletIdx, !!s.action);

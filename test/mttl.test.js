@@ -186,6 +186,27 @@ test('this path needs no MQTT broker at all', async () => {
   assert.equal(totals.stripsOnline, 2);
 });
 
+test('a locked outlet is skipped by "all", not just refused individually', async () => {
+  const id = (await api('GET', '/api/state')).body.strips[0].id;
+  await api('POST', `/api/strips/${id}/outlets/2`, { on: false });
+  await api('PATCH', `/api/strips/${id}/outlets/2`, { locked: true });
+
+  const single = await api('POST', `/api/strips/${id}/outlets/2`, { on: true });
+  assert.equal(single.status, 423, 'the single-outlet route refuses a locked outlet');
+
+  const all = await api('POST', `/api/strips/${id}/all`, { on: true });
+  assert.equal(all.status, 200);
+  assert.equal(all.body.switched, 3, 'three of four channels, the locked one skipped');
+
+  const s = await until(async () => {
+    const x = (await api('GET', '/api/state')).body.strips.find((y) => y.id === id);
+    return x.outlets.filter((o) => o.on).length === 3 ? x : null;
+  }, 10_000, 'three outlets on');
+  assert.equal(s.outlets.find((o) => o.idx === 2).on, false, 'the locked outlet stayed off');
+
+  await api('PATCH', `/api/strips/${id}/outlets/2`, { locked: false });
+});
+
 test('a strip that drops off is marked offline and refuses commands', async () => {
   const before = (await api('GET', '/api/state')).body.strips[0];
   // Kill the simulator; both strips should go offline.

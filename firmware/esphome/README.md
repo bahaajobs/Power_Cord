@@ -1,5 +1,15 @@
 # ESPHome starter configurations
 
+> [!IMPORTANT]
+> **Not applicable to the MTTL-W01.** Those units carry a Realtek **RTL8711AF**,
+> which ESPHome/LibreTiny and OpenBeken do not support — it is the original
+> Ameba1 family and lacks the XIP flash architecture those firmwares target.
+> The stock firmware needs no flashing at all: see
+> [`../../docs/16-stock-firmware.md`](../../docs/16-stock-firmware.md).
+>
+> These configs remain for any unit in the batch that turns out to carry a Beken
+> or Espressif module.
+
 Two templates, one per likely chipset. **Both contain pin assignments that are
 hypotheses, marked `# VERIFY`.** Do not flash either until you have completed
 step 5 of [`../../docs/01-device-identification.md`](../../docs/01-device-identification.md)

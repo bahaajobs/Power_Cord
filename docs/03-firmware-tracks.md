@@ -1,5 +1,19 @@
 # 03 — The three firmware tracks
 
+> [!IMPORTANT]
+> **Superseded for the MTTL-W01.** The physical units are built on a **Realtek
+> RTL8711AF**, not a Beken BK7231. OpenBeken, Tasmota and ESPHome/LibreTiny do
+> **not** support that part, so Track A as written here is not available on this
+> device. The pin maps and datapoint tables below describe the BK7231/ESP class
+> of hardware and do not apply to it.
+>
+> Use [`16-stock-firmware.md`](16-stock-firmware.md) and
+> [`17-mttl-w01-protocol-and-cloud-bypass.md`](17-mttl-w01-protocol-and-cloud-bypass.md)
+> instead — the stock firmware needs no flashing at all. This document is kept
+> because the batch may not be uniform, and it still applies to any unit that
+> does turn out to carry a Beken or ESP module.
+
+
 Pick using the output of [`01-device-identification.md`](01-device-identification.md).
 
 | | Track A — re-flash | Track B — stock Tuya, local | Track C — carrier-locked |

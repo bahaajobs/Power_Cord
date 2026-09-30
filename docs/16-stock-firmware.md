@@ -20,10 +20,22 @@ better than Track A **if the device matches**.
 
 ## First: is this actually your device?
 
-**Unverified.** `powerk` targets a 4-outlet MTTL-W01 with **no USB handling at
-all**. The strips in the original photograph have 4 outlets **and 2 USB-A
-ports**. That could be the same family with an always-on USB rail, or a
-different variant. Nobody has checked.
+**Confirmed, by teardown.** The physical units in Egypt are **MTTL-W01**, LG U+
+branded, made by TCL, KC id `HU04139-17002A`, MAC prefix `88:D0:39`. The full
+measured profile is in
+[`17-mttl-w01-protocol-and-cloud-bypass.md`](17-mttl-w01-protocol-and-cloud-bypass.md).
+
+Two things that earlier looked like open questions are now settled:
+
+- **The USB ports are not switchable.** They hang off the main 5 V rail on their
+  own sub-board, so there is no relay to control. Treating these strips as
+  4 outlets with no USB channel — which is what this transport does — is
+  correct, not a limitation.
+- **The Wi-Fi SoC is a Realtek RTL8711AF**, not a Beken BK7231. OpenBeken,
+  Tasmota and ESPHome/LibreTiny do not support it, so the flashing tracks in
+  [`03-firmware-tracks.md`](03-firmware-tracks.md) are **not available on this
+  device**. Not flashing is no longer merely preferable; it is the only
+  practical route short of a JTAG port and the legacy Ameba1 SDK.
 
 The test is cheap and needs no tools:
 
@@ -32,11 +44,29 @@ The test is cheap and needs no tools:
    `LGU_XXXXXXX` — the same 7 characters).
 3. Join it and run the provisioner (below).
 
-If the strip answers `up:ip:ip_ok`, it is this family and everything here
-applies. If no such network appears, it is not, and the flashing tracks in
-[`03-firmware-tracks.md`](03-firmware-tracks.md) still stand.
+If the strip answers `up:ip:ip_ok`, the server-provisioning route below works.
+If the setup network appears but that command is refused, use the DNS route in
+[`17-mttl-w01-protocol-and-cloud-bypass.md`](17-mttl-w01-protocol-and-cloud-bypass.md)
+instead — same server, different way of pointing the strip at it.
 
 Do this on **one** unit before planning anything around it.
+
+### Two ways to point the strip at your server
+
+| | How | Needs |
+| --- | --- | --- |
+| **Provisioning** (this document) | Write your server's IP into the strip over its setup AP | The strip to accept `up:ip:` |
+| **DNS redirection** ([doc 17](17-mttl-w01-protocol-and-cloud-bypass.md)) | Leave the strip paired as-is; point its hardcoded cloud domain at your server | Control of the router's DNS, or a Pi-hole |
+
+The DNS route needs no setup-mode dance and works on a strip already paired
+with the stock app. The provisioning route needs no router change. Both end at
+the same place: the strip holds a TCP session to a server you run.
+
+**The port differs between the two accounts** — `10086` after provisioning,
+`30300` for the DNS route — and that may be a firmware-revision difference or
+an artefact of how each was observed. `PC_MTTL_PORT` exists precisely so you can
+serve whichever your unit actually dials; watch the server log and use the one
+that connects.
 
 ---
 
@@ -117,9 +147,11 @@ Arabic, schedules, history, standby cutoff, overload, bracket tariffs.
 
 ---
 
-## What this device can do that a re-flashed one cannot
+## Two hardware facts that change the product
 
-**Per-outlet metering.** The MTTL protocol reports power, energy **and
+**Per-outlet metering is real.** The teardown found independent current sensing
+on all four channels — dual 2 mΩ shunts in parallel per channel, with its own
+metering IC beside each relay. The protocol reports power, energy **and
 temperature for every channel**. Re-flashed strips have a single shunt upstream
 of all four relays and can only measure the strip as a whole.
 
@@ -128,6 +160,14 @@ This is a real exception to non-negotiable #4 in
 detection, not assumption. A strip reports `perOutletMetering: true` only when
 it actually delivers per-channel readings; the rule still holds for every strip
 that does not.
+
+**The relays are magnetic latching, and that is a safety fact.** They hold their
+contact state mechanically, need only a ~10–20 ms pulse to toggle, and draw no
+coil current at rest. The consequence: **an outlet that was on comes back on
+after a power cut**, and no software setting can change that. Non-negotiable #6
+in [`../CLAUDE.md`](../CLAUDE.md) — relays default to off after a blackout —
+cannot be honoured on this hardware. Say so plainly rather than implying the app
+protects against it.
 
 ---
 

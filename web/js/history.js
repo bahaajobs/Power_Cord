@@ -86,11 +86,11 @@ export async function record(deviceId, energy, sampleEveryMs = 60_000) {
       totalKwh: energy.totalKwh ?? null, syncedAt: now,
     }));
     // First poll after midnight: the strip still knows yesterday's total, so
-    // take it and correct whatever we had integrated overnight.
+    // take it and correct whatever was recorded or integrated earlier.
     if (Number.isFinite(energy.yesterdayKwh)) {
       const yd = yesterdayKey();
       const existing = await getDaily(deviceId, yd);
-      if (!existing || existing.source !== 'device') {
+      if (!existing || existing.kwh !== energy.yesterdayKwh) {
         await tx('daily', 'readwrite', (s) => s.put({
           deviceId, day: yd, kwh: energy.yesterdayKwh, source: 'device', syncedAt: now,
         }));
@@ -224,9 +224,17 @@ export async function removeDevice(deviceId) {
   const rows = await allDaily();
   const db = await open();
   return new Promise((resolve) => {
-    const t = db.transaction('daily', 'readwrite');
+    const t = db.transaction(['daily', 'samples'], 'readwrite');
     const s = t.objectStore('daily');
     for (const r of rows) if (r.deviceId === deviceId) s.delete([deviceId, r.day]);
+    const sc = t.objectStore('samples').openCursor();
+    sc.onsuccess = () => {
+      const c = sc.result;
+      if (c) {
+        if (c.value.deviceId === deviceId) c.delete();
+        c.continue();
+      }
+    };
     t.oncomplete = resolve;
     t.onerror = resolve;
   });

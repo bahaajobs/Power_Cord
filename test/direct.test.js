@@ -113,3 +113,61 @@ test('host strings are accepted with or without scheme and port', async () => {
     assert.equal(s.online, true, h);
   }
 });
+
+test('setAllOutlets preserves locked outlets', async () => {
+  if (!globalThis.localStorage) {
+    const mem = new Map();
+    globalThis.localStorage = {
+      getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+      setItem: (k, v) => mem.set(k, String(v)),
+      removeItem: (k) => mem.delete(k),
+      clear: () => mem.clear(),
+    };
+  }
+  const store = await import('../web/js/store.js');
+  const engine = await import('../web/js/engine.js');
+
+  const dev = store.addDevice({ name: 'LockedStrip', lanHost: HOST, outletCount: 4 });
+  store.updateOutlet(dev.id, 2, { locked: true });
+
+  // Turn outlet 2 ON first
+  await direct.setChannel(dev, 2, true);
+  await engine.pollOne(dev);
+  assert.equal(engine.stateOf(dev.id).channels[2], true);
+
+  // Turn all off: outlet 2 must remain ON because it is locked
+  await engine.setAllOutlets(dev.id, false);
+  assert.equal(engine.stateOf(dev.id).channels[2], true);
+  assert.equal(engine.stateOf(dev.id).channels[1], false);
+  assert.equal(engine.stateOf(dev.id).channels[3], false);
+  assert.equal(engine.stateOf(dev.id).channels[4], false);
+
+  store.removeDevice(dev.id);
+});
+
+test('setOutlet reverts optimistic state when strip is unreachable', async () => {
+  if (!globalThis.localStorage) {
+    const mem = new Map();
+    globalThis.localStorage = {
+      getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+      setItem: (k, v) => mem.set(k, String(v)),
+      removeItem: (k) => mem.delete(k),
+      clear: () => mem.clear(),
+    };
+  }
+  const store = await import('../web/js/store.js');
+  const engine = await import('../web/js/engine.js');
+
+  const unreach = store.addDevice({ name: 'UnreachStrip', lanHost: '127.0.0.1:8799', outletCount: 4 });
+  const cur = engine.stateOf(unreach.id);
+  cur.channels = { 1: false };
+
+  await assert.rejects(
+    () => engine.setOutlet(unreach.id, 1, true),
+  );
+  // Reverts channel 1 back to false
+  assert.equal(engine.stateOf(unreach.id).channels[1], false);
+
+  store.removeDevice(unreach.id);
+});
+

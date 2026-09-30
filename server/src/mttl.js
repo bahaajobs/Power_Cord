@@ -263,13 +263,10 @@ export function setMttlOutlet(stripId, channel, on) {
   send(session.socket, `up:onoff:${channel}:${on ? 'on' : 'off'}`);
 }
 
-/** There is no `up:onoff:0` in this protocol — "all" is a loop over channels. */
-export function setMttlAll(stripId, on) {
-  if (!sessions.has(Number(stripId))) throw new Error('strip offline');
-  const strip = getStrip(stripId);
-  const count = strip?.outlet_count ?? 4;
-  for (let c = 1; c <= count; c++) setMttlOutlet(stripId, c, on);
-}
+// There is deliberately no `setMttlAll` here. This protocol has no
+// `up:onoff:0`, so "all" is a loop either way — and doing that loop in the API
+// layer is what lets locked outlets be skipped. A transport-level version would
+// quietly switch them.
 
 export const isMttl = (stripId) => sessions.has(Number(stripId));
 

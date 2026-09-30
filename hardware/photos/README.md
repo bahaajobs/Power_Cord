@@ -8,9 +8,9 @@ this file and the manifest template.
 Photographs in published teardowns are the property of the people who took them.
 Copying them into this repository would be a licensing problem rather than a
 technical one, and the original schematics in
-[`../schematics/`](../schematics/) carry more usable information than a photo of
-someone else's board. Links to the external teardowns are in
-[`../../docs/08-teardown.md`](../../docs/08-teardown.md) — read them there.
+[`../schematics/`](../schematics/) (including [`05-cb3s-flashing-pinout.svg`](../schematics/05-cb3s-flashing-pinout.svg))
+carry more usable information than a photo of someone else's board. Links to the external teardown
+photo galleries are in [`../../docs/08-teardown.md`](../../docs/08-teardown.md) — read them there.
 
 ## Capture protocol
 

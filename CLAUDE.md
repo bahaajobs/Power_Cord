@@ -63,8 +63,14 @@ These are safety and honesty properties. Do not "simplify" them away.
    after it has actually reported telemetry. Strips with no meter show
    "no meter", never a zero that reads like a measurement.
 
-6. **Relay power-on behaviour defaults to `off`.** A heater that switches itself
-   on after a blackout, in an empty flat, is the reason.
+6. **Relay power-on behaviour defaults to `off`** where the hardware has such a
+   setting. A heater that switches itself on after a blackout, in an empty flat,
+   is the reason.
+   **The MTTL-W01 cannot honour this.** It uses magnetic *latching* relays:
+   they hold their contact state mechanically and survive a power cut, so an
+   outlet that was on comes back on. That is a property of the hardware, not a
+   setting. Do not claim the app can prevent it — say plainly that it cannot,
+   which matters more here than on a strip where the default is configurable.
 
 7. **Egyptian electricity is billed in rising brackets.** A single price per kWh
    is wrong by construction. The bracket table stays user-editable and rates are
@@ -72,9 +78,15 @@ These are safety and honesty properties. Do not "simplify" them away.
    disagree.
 
 8. **Pin maps and datapoint IDs are hypotheses, always.** Everything in
-   `docs/02-hardware-reference.md` and `docs/08-teardown.md` comes from teardowns of *similar* hardware. The same
-   pins mean different things on metering and non-metering variants. Label them
-   as hypotheses; never as facts about the user's units.
+   `docs/02-hardware-reference.md` and `docs/08-teardown.md` comes from teardowns
+   of *similar* hardware. The same pins mean different things on metering and
+   non-metering variants. Label them as hypotheses; never as facts about the
+   user's units.
+   This is not theoretical: the physical units turned out to be Realtek
+   **RTL8711AF**, not Beken BK7231, so those pin maps and the ESPHome configs
+   do not apply to them at all. `docs/17-mttl-w01-protocol-and-cloud-bypass.md`
+   is the measured record; docs 02, 03 and 08 are the hypothesis that was wrong
+   for this device.
 
 9. **No third-party copyrighted assets.** Teardown photographs belong to whoever
    took them. Link to them; do not commit them. Schematics in

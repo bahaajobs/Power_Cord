@@ -3,7 +3,7 @@ import {
   createStrip, deleteStrip, getStrip, snapshot, stripView, updateOutlet, updateStrip,
 } from './devices.js';
 import { bridgeStatus, sendCommand, setAll, setOutlet } from './bridge.js';
-import { mttlStatus, setMttlAll, setMttlOutlet } from './mttl.js';
+import { mttlStatus, setMttlOutlet } from './mttl.js';
 
 /**
  * Which transport owns a strip is a property of the strip, not of whether a
@@ -123,19 +123,32 @@ on('POST', '/api/strips/:id/all', ({ params, body }) => {
   const strip = getStrip(params.id);
   if (!strip) throw new HttpError(404, 'no such strip');
   if (typeof body?.on !== 'boolean') bad('body must be {"on": true|false}');
+  // A locked outlet is skipped here exactly as it is refused on the
+  // single-outlet route. Locking means the software does not switch it, and a
+  // batch command is still the software switching it.
+  const channels = db.prepare(
+    'SELECT idx FROM outlets WHERE strip_id = ? AND idx <= ? AND locked = 0 ORDER BY idx',
+  ).all(strip.id, strip.outlet_count).map((r) => r.idx);
+  if (channels.length === 0) return { ok: true, skipped: 'all outlets are locked' };
   try {
-    if (usesMttl(strip)) setMttlAll(strip.id, body.on);
-    else setAll(strip.id, body.on);
+    for (const c of channels) {
+      if (usesMttl(strip)) setMttlOutlet(strip.id, c, body.on);
+      else setOutlet(strip.id, c, body.on);
+    }
   } catch (err) { throw new HttpError(503, err.message); }
-  return { ok: true };
+  return { ok: true, switched: channels.length };
 });
 
 on('POST', '/api/all-off', () => {
   const results = [];
   for (const s of snapshot().strips) {
     try {
-      if (s.transport === 'mttl') setMttlAll(s.id, false); else setAll(s.id, false);
-      results.push({ id: s.id, ok: true });
+      const channels = s.outlets.filter((o) => !o.isUsb && !o.locked).map((o) => o.idx);
+      for (const c of channels) {
+        if (s.transport === 'mttl') setMttlOutlet(s.id, c, false);
+        else setOutlet(s.id, c, false);
+      }
+      results.push({ id: s.id, ok: true, switched: channels.length });
     } catch (err) { results.push({ id: s.id, ok: false, error: err.message }); }
   }
   return { results };
