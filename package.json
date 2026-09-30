@@ -14,7 +14,10 @@
     "broker": "node sim/broker.js",
     "sim": "node sim/simulator.js",
     "demo": "node --disable-warning=ExperimentalWarning sim/demo.js",
-    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "mttl-sim": "node sim/mttl-sim.js",
+    "provision": "node tools/provision-mttl.js",
+    "demo:mttl": "node sim/demo.js --mttl"
   },
   "dependencies": {
     "@capacitor/core": "^6.2.2",

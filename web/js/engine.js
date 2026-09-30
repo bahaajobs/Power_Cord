@@ -8,9 +8,14 @@
 
 import * as store from './store.js';
 import * as direct from './direct.js';
+import * as server from './server.js';
 import * as history from './history.js';
 
 const runtime = new Map();   // deviceId -> {online, channels, energy, via, lastSeen, error}
+// In server mode the device list comes from the server rather than the phone,
+// so it is held here and never written into the local store — switching modes
+// leaves a direct-mode setup untouched.
+let serverDevices = [];
 const pending = new Map();   // `${deviceId}:${channel}` -> {want, timer}
 const listeners = new Set();
 
@@ -21,6 +26,15 @@ export const onUpdate = (fn) => { listeners.add(fn); return () => listeners.dele
 const emit = (extra) => { for (const fn of listeners) fn(extra); };
 
 export const stateOf = (id) => runtime.get(id) || { online: false, channels: {}, energy: null };
+
+const inServerMode = () => store.get().mode === 'server';
+
+/** The device list for the active mode. Views must use this, not the store. */
+export function deviceList() {
+  return inServerMode() ? serverDevices : store.get().devices;
+}
+
+export const deviceById = (id) => deviceList().find((d) => d.id === id) || null;
 export const isPending = (id, ch) => pending.has(`${id}:${ch}`);
 
 export function start() {
@@ -36,14 +50,44 @@ async function tick() {
   if (polling) return;          // a slow network must not stack up polls
   polling = true;
   try {
-    const devices = store.get().devices;
-    // Concurrent: twenty strips take as long as one, not twenty times as long.
-    await Promise.allSettled(devices.map(pollOne));
+    if (inServerMode()) await pollServer();
+    else {
+      // Concurrent: twenty strips take as long as one, not twenty times as long.
+      await Promise.allSettled(store.get().devices.map(pollOne));
+    }
     runSchedules();
     runAutomations();
     emit();
   } finally {
     polling = false;
+  }
+}
+
+/** One request covers the whole fleet in server mode. */
+async function pollServer() {
+  const s = store.get();
+  server.configure(s.serverUrl, s.serverToken);
+  // No point polling before the user has signed in: it would fill the server's
+  // log with 401s every couple of seconds and tell us nothing.
+  if (!server.isConfigured() || !s.serverToken) { serverDevices = []; return; }
+  try {
+    const rows = await server.pollAll();
+    serverDevices = rows.map((r) => r.device);
+    for (const r of rows) {
+      const prev = runtime.get(r.device.id);
+      runtime.set(r.device.id, { ...r.state, error: null });
+      for (const [ch, on] of Object.entries(r.state.channels)) {
+        resolvePending(r.device.id, Number(ch), on);
+      }
+      if (r.state.energy && Number.isFinite(r.state.energy.watts)) {
+        await history.record(r.device.id, r.state.energy);
+      }
+      if (!prev?.online && r.state.online) emit();
+    }
+  } catch (err) {
+    for (const d of serverDevices) {
+      runtime.set(d.id, { ...(runtime.get(d.id) || { channels: {} }), online: false, error: err.message });
+    }
   }
 }
 
@@ -78,7 +122,7 @@ export async function pollOne(device) {
  * the failure this exists to prevent.
  */
 export async function setOutlet(deviceId, channel, want, { onRevert } = {}) {
-  const d = store.device(deviceId);
+  const d = deviceById(deviceId);
   if (!d) return;
   const key = `${deviceId}:${channel}`;
   clearPending(deviceId, channel);
@@ -91,7 +135,7 @@ export async function setOutlet(deviceId, channel, want, { onRevert } = {}) {
     want,
     timer: setTimeout(async () => {
       pending.delete(key);
-      await pollOne(d);
+      await refreshOne(d);
       onRevert?.();
       emit();
     }, 3500),
@@ -99,7 +143,9 @@ export async function setOutlet(deviceId, channel, want, { onRevert } = {}) {
   emit();
 
   try {
-    const confirmed = await direct.setChannel(d, channel, want);
+    const confirmed = inServerMode()
+      ? await server.setChannel(d.serverId, channel, want)
+      : await direct.setChannel(d, channel, want);
     if (confirmed !== null) {
       const cur = runtime.get(deviceId) || { channels: {} };
       cur.channels = { ...cur.channels, [channel]: confirmed };
@@ -110,22 +156,34 @@ export async function setOutlet(deviceId, channel, want, { onRevert } = {}) {
     emit();
   } catch (err) {
     clearPending(deviceId, channel);
-    await pollOne(d);
+    await refreshOne(d);
     emit();
     throw err;
   }
 }
 
+/** Re-read one device through whichever transport the current mode uses. */
+async function refreshOne(device) {
+  if (inServerMode()) await pollServer();
+  else await pollOne(device);
+}
+
 export async function setAllOutlets(deviceId, on) {
-  const d = store.device(deviceId);
+  const d = deviceById(deviceId);
   if (!d) return;
-  const channels = d.outlets.filter((o) => !o.isUsb).map((o) => o.idx);
-  await direct.setAll(d, channels, on);
-  await pollOne(d);
+  if (inServerMode()) await server.setAll(d.serverId, on);
+  else await direct.setAll(d, d.outlets.filter((o) => !o.isUsb).map((o) => o.idx), on);
+  await refreshOne(d);
   emit();
 }
 
 export async function allOffEverywhere() {
+  if (inServerMode()) {
+    await server.allOff();
+    await pollServer();
+    emit();
+    return [];
+  }
   const results = await Promise.allSettled(store.get().devices.map((d) => setAllOutlets(d.id, false)));
   emit();
   return results;
@@ -166,7 +224,7 @@ function runSchedules() {
 
 function fire(s) {
   store.updateSchedule(s.id, { lastFired: Date.now() });
-  const d = store.device(s.deviceId);
+  const d = deviceById(s.deviceId);
   if (!d) return;
   const run = s.outletIdx == null
     ? setAllOutlets(s.deviceId, !!s.action)
@@ -212,7 +270,7 @@ function runAutomations() {
 /* ---------------------------------------------------------------- summary */
 
 export function summary() {
-  const devices = store.get().devices;
+  const devices = deviceList();
   let watts = 0, online = 0, on = 0, total = 0, plans = 0, anyMeter = false;
   for (const d of devices) {
     const rt = stateOf(d.id);

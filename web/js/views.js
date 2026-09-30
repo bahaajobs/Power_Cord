@@ -72,18 +72,18 @@ export function setupView(step) {
 /* ------------------------------------------------------------------- home */
 
 export function homeView({ search = '', reveal = new Set() } = {}) {
-  const s = store.get();
   const sum = engine.summary();
   const q = search.trim().toLowerCase();
 
+  const all = engine.deviceList();
   const devices = q
-    ? s.devices.filter((d) =>
+    ? all.filter((d) =>
         d.name.toLowerCase().includes(q) ||
         (d.deviceId || '').toLowerCase().includes(q) ||
         (d.room || '').toLowerCase().includes(q) ||
         (d.lanHost || '').toLowerCase().includes(q) ||
         d.outlets.some((o) => o.name.toLowerCase().includes(q)))
-    : s.devices;
+    : all;
 
   return `
   ${banner()}
@@ -120,9 +120,9 @@ export function homeView({ search = '', reveal = new Set() } = {}) {
 }
 
 function banner() {
-  const s = store.get();
-  if (s.devices.length === 0) return '';
-  const anyOnline = s.devices.some((d) => engine.stateOf(d.id).online);
+  const devices = engine.deviceList();
+  if (devices.length === 0) return '';
+  const anyOnline = devices.some((d) => engine.stateOf(d.id).online);
   if (anyOnline) return '';
   return `<div class="banner">${I.warn}<span>${esc(t('err.offline'))}</span></div>`;
 }
@@ -322,7 +322,7 @@ export function schedulesView() {
 }
 
 function scheduleRow(s) {
-  const d = store.device(s.deviceId);
+  const d = engine.deviceById(s.deviceId);
   const target = s.outletIdx == null ? t('sched.allOutlets')
     : (() => { const o = d?.outlets.find((x) => x.idx === s.outletIdx); return o ? outletName(o) : `#${s.outletIdx}`; })();
   const when = s.kind === 'countdown'
@@ -358,7 +358,7 @@ export function automationView() {
 }
 
 function automationRow(a) {
-  const d = store.device(a.deviceId);
+  const d = engine.deviceById(a.deviceId);
   const rt = d ? engine.stateOf(d.id) : null;
   const desc = a.kind === 'standby'
     ? t('auto.standbyDesc', { w: num(a.thresholdW), m: num(Math.round((a.durationS || 600) / 60)) })
@@ -380,7 +380,7 @@ function automationRow(a) {
 /* ------------------------------------------------------- device settings */
 
 export function deviceView(id) {
-  const d = store.device(id);
+  const d = engine.deviceById(id);
   if (!d) return topbar('—', '—') + `<div class="empty"><p>—</p></div>`;
   const rt = engine.stateOf(id);
   const row = (k, v) => `<div class="list-item"><div><div class="t">${esc(k)}</div><div class="s" dir="ltr">${esc(v)}</div></div></div>`;
@@ -440,7 +440,16 @@ export function settingsView(historyDays) {
         ${esc(s.mode === 'direct' ? t('settings.directHelp') : t('settings.serverHelp'))}</p>
       ${s.mode === 'server' ? `
         <label class="field" style="margin-top:14px"><span>${esc(t('settings.serverUrl'))}</span>
-          <input id="serverUrl" value="${esc(s.serverUrl)}" dir="ltr" placeholder="http://192.168.1.10:8080"></label>` : ''}
+          <input id="serverUrl" value="${esc(s.serverUrl)}" dir="ltr" placeholder="http://192.168.1.10:8080"></label>
+        <div class="row-2">
+          <label class="field"><span>${esc(t('settings.user'))}</span>
+            <input id="serverUser" value="admin" dir="ltr" autocapitalize="none"></label>
+          <label class="field"><span>${esc(t('settings.pass'))}</span>
+            <input id="serverPass" type="password" dir="ltr"></label>
+        </div>
+        <div id="serverOut" class="dim" style="font-size:13px;margin-bottom:10px">
+          ${s.serverToken ? esc(t('settings.signedIn')) : esc(t('settings.notSignedIn'))}</div>
+        <button class="btn primary" data-action="server-signin" style="width:100%">${esc(t('settings.signIn'))}</button>` : ''}
       <label class="field" style="margin-top:14px"><span>${esc(t('settings.poll'))}</span>
         <input id="pollSeconds" type="number" min="2" max="120" value="${esc(s.pollSeconds)}" dir="ltr"></label>
     </section>

@@ -37,6 +37,14 @@ export const config = {
   adminPassword: process.env.PC_ADMIN_PASSWORD || '',
   tokenTtlDays: num(process.env.PC_TOKEN_TTL_DAYS, 30),
 
+  // Stock-firmware MTTL / LG U+ strips. They dial us, so the port is fixed by
+  // their firmware and cannot be changed. Off by default: it opens a listener
+  // that accepts unauthenticated device connections, which is only appropriate
+  // once you actually have such a strip.
+  mttlEnabled: bool(process.env.PC_MTTL_ENABLED, false),
+  mttlPort: num(process.env.PC_MTTL_PORT, 10086),
+  mttlPollMs: num(process.env.PC_MTTL_POLL_MS, 5_000),
+
   // Behaviour
   sampleIntervalMs: num(process.env.PC_SAMPLE_INTERVAL_MS, 60_000),
   tickIntervalMs: num(process.env.PC_TICK_INTERVAL_MS, 15_000),

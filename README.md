@@ -8,6 +8,18 @@ Sold in Korea locked to a cloud you cannot reach from Egypt. The hardware is
 fine; the lock is a cloud-account problem, not a silicon one. Re-flash the Wi-Fi
 module with open firmware and everything in this repository takes over.
 
+## Do the strips even need flashing?
+
+**Possibly not.** If they are LG U+ / Jinheung MTTL-class units, the stock
+firmware dials a server address stored in its own flash — and that address is
+rewritable in two lines over the strip's setup access point. No case opened, no
+UART, no `tuya-cloudcutter`, no certification voided.
+
+That path is implemented and tested here:
+[`docs/16-stock-firmware.md`](docs/16-stock-firmware.md)
+([العربية](docs/16-stock-firmware.ar.md)). Whether your units are that family is
+**unverified** — one evening with one strip settles it.
+
 ## The app
 
 An installable **Android app** that talks to each strip **directly** — no
@@ -66,6 +78,7 @@ refurbishment work that comes with putting used switchgear back into homes.
 | **[`docs/12-test-plan.md`](docs/12-test-plan.md)** | **What can be tested now, and what is gated on hardware** |
 | **[`docs/13-direct-mode.md`](docs/13-direct-mode.md)** | **No-server control, port forwarding, and what it costs** |
 | **[`docs/14-android-app.md`](docs/14-android-app.md)** | **Getting and building the APK** |
+| **[`docs/16-stock-firmware.md`](docs/16-stock-firmware.md)** | **Running the strips with no flashing at all** ([العربية](docs/16-stock-firmware.ar.md)) |
 | [`docs/15-agent-handoff.md`](docs/15-agent-handoff.md) | Brief for handing this project to another AI |
 | [`docs/sources.md`](docs/sources.md) | Every external source, with links |
 

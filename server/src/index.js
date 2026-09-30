@@ -8,6 +8,7 @@ import { logger } from './log.js';
 import { seedAdmin, userForToken } from './db.js';
 import { reapStale, snapshot } from './devices.js';
 import { bridgeStatus, connectBridge } from './bridge.js';
+import { mttlStatus, startMttl } from './mttl.js';
 import { pruneSamples } from './energy.js';
 import { tick } from './scheduler.js';
 import { handleApi, tokenFrom } from './api.js';
@@ -44,7 +45,7 @@ const clients = new Set();
 function broadcast(extra = {}) {
   if (clients.size === 0) return;
   const payload = JSON.stringify({
-    type: 'state', ...snapshot(), mqtt: bridgeStatus(), ...extra,
+    type: 'state', ...snapshot(), mqtt: bridgeStatus(), mttl: mttlStatus(), ...extra,
   });
   for (const ws of clients) {
     if (ws.readyState === ws.OPEN) ws.send(payload);
@@ -143,13 +144,14 @@ server.on('upgrade', (req, socket, head) => {
     clients.add(ws);
     ws.on('close', () => clients.delete(ws));
     ws.on('error', () => clients.delete(ws));
-    ws.send(JSON.stringify({ type: 'state', ...snapshot(), mqtt: bridgeStatus() }));
+    ws.send(JSON.stringify({ type: 'state', ...snapshot(), mqtt: bridgeStatus(), mttl: mttlStatus() }));
   });
 });
 
 /* ------------------------------------------------------------------ loops */
 
 connectBridge(scheduleBroadcast);
+startMttl(scheduleBroadcast);
 
 setInterval(() => {
   if (reapStale() > 0) scheduleBroadcast();

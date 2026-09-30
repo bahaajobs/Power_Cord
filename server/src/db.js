@@ -122,6 +122,26 @@ CREATE INDEX IF NOT EXISTS idx_samples_ts ON samples(ts);
 CREATE INDEX IF NOT EXISTS idx_events_ts  ON events(ts);
 `);
 
+/*
+ * Per-outlet metering.
+ *
+ * The re-flashed strips cannot do this: their shunt sits upstream of every
+ * relay, so one meter covers the whole strip. Stock-firmware MTTL strips are
+ * different — their native protocol reports power, energy and temperature per
+ * channel. So the columns exist, and the UI shows them only for devices that
+ * actually populate them (capabilities are detected, never assumed).
+ */
+for (const [table, column, type] of [
+  ['outlets', 'power_w', 'REAL'],
+  ['outlets', 'energy_kwh', 'REAL'],
+  ['outlets', 'temp_c', 'REAL'],
+  ['strips', 'transport', "TEXT NOT NULL DEFAULT 'mqtt'"],
+  ['strips', 'per_outlet_metering', 'INTEGER NOT NULL DEFAULT 0'],
+]) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+}
+
 /* ---------------------------------------------------------------- settings */
 
 const DEFAULT_SETTINGS = {

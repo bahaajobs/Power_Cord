@@ -3,6 +3,16 @@ import {
   createStrip, deleteStrip, getStrip, snapshot, stripView, updateOutlet, updateStrip,
 } from './devices.js';
 import { bridgeStatus, sendCommand, setAll, setOutlet } from './bridge.js';
+import { mttlStatus, setMttlAll, setMttlOutlet } from './mttl.js';
+
+/**
+ * Which transport owns a strip is a property of the strip, not of whether a
+ * session happens to be live. Deciding by live session meant an MTTL strip
+ * that had dropped fell through to MQTT and reported "broker unreachable" —
+ * blaming the broker for an offline strip, and, with a broker connected,
+ * publishing commands for a device that does not speak MQTT.
+ */
+const usesMttl = (strip) => strip.transport === 'mttl';
 import { energyReport } from './energy.js';
 import {
   createAutomation, createSchedule, deleteAutomation, deleteSchedule,
@@ -38,12 +48,12 @@ on('POST', '/api/auth/logout', ({ token }) => { revokeToken(token); return { ok:
 on('GET', '/api/me', ({ user }) => ({ username: user.username }));
 
 on('GET', '/api/health', () => ({
-  ok: true, mqtt: bridgeStatus(), time: Date.now(),
+  ok: true, mqtt: bridgeStatus(), mttl: mttlStatus(), time: Date.now(),
 }), { public: true });
 
 /* ----------------------------------------------------------------- strips */
 
-on('GET', '/api/state', () => ({ ...snapshot(), mqtt: bridgeStatus() }));
+on('GET', '/api/state', () => ({ ...snapshot(), mqtt: bridgeStatus(), mttl: mttlStatus() }));
 
 on('GET', '/api/strips', () => snapshot().strips);
 
@@ -92,7 +102,10 @@ on('POST', '/api/strips/:id/outlets/:idx', ({ params, body }) => {
   if (outlet.locked) throw new HttpError(423, `${outlet.name} is locked`);
   if (typeof body?.on !== 'boolean') bad('body must be {"on": true|false}');
   try {
-    setOutlet(strip.id, idx, body.on);
+    // The strip's transport decides how the command travels. A stock-firmware
+    // MTTL strip is driven over its own TCP session; a re-flashed one over MQTT.
+    if (usesMttl(strip)) setMttlOutlet(strip.id, idx, body.on);
+    else setOutlet(strip.id, idx, body.on);
   } catch (err) {
     // 503 rather than 500: the request was fine, the device was not reachable.
     throw new HttpError(503, err.message);
@@ -110,15 +123,20 @@ on('POST', '/api/strips/:id/all', ({ params, body }) => {
   const strip = getStrip(params.id);
   if (!strip) throw new HttpError(404, 'no such strip');
   if (typeof body?.on !== 'boolean') bad('body must be {"on": true|false}');
-  try { setAll(strip.id, body.on); } catch (err) { throw new HttpError(503, err.message); }
+  try {
+    if (usesMttl(strip)) setMttlAll(strip.id, body.on);
+    else setAll(strip.id, body.on);
+  } catch (err) { throw new HttpError(503, err.message); }
   return { ok: true };
 });
 
 on('POST', '/api/all-off', () => {
   const results = [];
   for (const s of snapshot().strips) {
-    try { setAll(s.id, false); results.push({ id: s.id, ok: true }); }
-    catch (err) { results.push({ id: s.id, ok: false, error: err.message }); }
+    try {
+      if (s.transport === 'mttl') setMttlAll(s.id, false); else setAll(s.id, false);
+      results.push({ id: s.id, ok: true });
+    } catch (err) { results.push({ id: s.id, ok: false, error: err.message }); }
   }
   return { results };
 });

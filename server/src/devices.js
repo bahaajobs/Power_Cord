@@ -166,6 +166,10 @@ export function stripView(strip) {
     volts: strip.volts,
     amps: strip.amps,
     hasMetering: !!strip.has_metering,
+    // Stock-firmware MTTL strips meter each channel; re-flashed ones have a
+    // single shunt upstream of every relay and cannot. Detected, not assumed.
+    perOutletMetering: !!strip.per_outlet_metering,
+    transport: strip.transport || 'mqtt',
     hasUsb: !!strip.has_usb,
     usbChannel: strip.usb_channel,
     outletCount: strip.outlet_count,
@@ -178,6 +182,9 @@ export function stripView(strip) {
       on: !!o.state,
       locked: !!o.locked,
       isUsb: o.idx > strip.outlet_count,
+      watts: o.power_w ?? null,
+      kwh: o.energy_kwh ?? null,
+      tempC: o.temp_c ?? null,
       updatedAt: o.updated_at,
     })),
   };

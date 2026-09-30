@@ -13,6 +13,7 @@ import * as history from './js/history.js';
 import * as views from './js/views.js';
 const outletName = views.outletName;
 import { probe } from './js/direct.js';
+import * as serverApi from './js/server.js';
 import { canScan, scanSubnet, subnetFrom } from './js/discovery.js';
 
 const esc = views.esc;
@@ -231,7 +232,7 @@ function tariffSheet() {
 }
 
 function scheduleSheet() {
-  const devices = store.get().devices;
+  const devices = engine.deviceList();
   if (!devices.length) { toast(t('home.empty')); return; }
   let mask = 127;
   const letters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -261,7 +262,7 @@ function scheduleSheet() {
 
   const form = $('#schedForm', bg);
   form.deviceId.addEventListener('change', () => {
-    const d = store.device(form.deviceId.value);
+    const d = engine.deviceById(form.deviceId.value);
     form.outletIdx.innerHTML = `<option value="">${esc(t('sched.allOutlets'))}</option>` +
       d.outlets.map((o) => `<option value="${o.idx}">${esc(o.name)}</option>`).join('');
   });
@@ -300,7 +301,7 @@ function scheduleSheet() {
 }
 
 function automationSheet() {
-  const devices = store.get().devices;
+  const devices = engine.deviceList();
   if (!devices.length) { toast(t('home.empty')); return; }
   const bg = sheet(`
     <h2>${esc(t('auto.new'))}</h2>
@@ -381,7 +382,7 @@ document.addEventListener('click', async (ev) => {
       case 'back': window.history.length > 1 ? window.history.back() : (location.hash = '#/'); break;
 
       case 'toggle': {
-        const d = store.device(id);
+        const d = engine.deviceById(id);
         const o = d?.outlets.find((x) => x.idx === idx);
         if (!o) break;
         if (o.locked) { toast(t('err.locked', { name: outletName(o) })); break; }
@@ -427,13 +428,13 @@ document.addEventListener('click', async (ev) => {
       case 'del-automation': store.removeAutomation(id); invalidate(); break;
 
       case 'edit-strip': {
-        const d = store.device(id);
+        const d = engine.deviceById(id);
         promptSheet({ title: t('ds.renameStrip'), label: t('add.name'), value: d.name },
           (v) => { store.updateDevice(id, { name: String(v).trim() || d.name }); invalidate(); });
         break;
       }
       case 'set-plan': {
-        const d = store.device(id);
+        const d = engine.deviceById(id);
         promptSheet({
           title: t('ds.setPlan'), label: t('ds.setPlan'), type: 'date',
           value: d.planExpires ? new Date(d.planExpires).toISOString().slice(0, 10) : '',
@@ -441,7 +442,7 @@ document.addEventListener('click', async (ev) => {
         break;
       }
       case 'remove-strip': {
-        const d = store.device(id);
+        const d = engine.deviceById(id);
         confirmSheet({
           title: t('ds.removeSure', { name: d.name }), sub: t('ds.removeBody'),
           yes: t('act.delete'), danger: true,
@@ -453,14 +454,14 @@ document.addEventListener('click', async (ev) => {
         break;
       }
       case 'rename-outlet': {
-        const d = store.device(id);
+        const d = engine.deviceById(id);
         const o = d.outlets.find((x) => x.idx === idx);
         promptSheet({ title: t('act.rename'), label: t('add.name'), value: outletName(o) },
           (v) => { store.updateOutlet(id, idx, { name: String(v).trim() }); invalidate(); });
         break;
       }
       case 'lock-outlet': {
-        const d = store.device(id);
+        const d = engine.deviceById(id);
         const o = d.outlets.find((x) => x.idx === idx);
         store.updateOutlet(id, idx, { locked: !o.locked }); invalidate(); break;
       }
@@ -472,7 +473,36 @@ document.addEventListener('click', async (ev) => {
 
       case 'mode':
         store.set({ mode: el2.dataset.mode });
-        invalidate(); break;
+        invalidate();
+        engine.start();
+        break;
+
+      case 'server-signin': {
+        const url = el('serverUrl')?.value.trim();
+        const user = el('serverUser')?.value.trim() || 'admin';
+        const pass = el('serverPass')?.value || '';
+        const out = el('serverOut');
+        if (!url) { toast(t('settings.serverUrl'), 'error'); break; }
+        store.set({ serverUrl: url });
+        serverApi.configure(url, '');
+        if (out) out.textContent = t('add.testing');
+        try {
+          const r = await serverApi.login(user, pass);
+          store.set({ serverToken: r.token });
+          const health = await serverApi.test();
+          if (out) {
+            out.textContent = health.mttl !== null
+              ? t('settings.serverOk', { n: num(health.mttl) })
+              : t('settings.serverOkNoMttl');
+            out.className = 'ok-text';
+          }
+          engine.start();
+          toast(t('ok.saved'), 'ok');
+        } catch (err) {
+          if (out) { out.className = 'err-text'; out.textContent = t('settings.serverFail', { err: err.message }); }
+        }
+        break;
+      }
 
       case 'export-history': {
         const data = { app: store.exportAll(), history: await history.exportAll() };
@@ -534,13 +564,13 @@ window.addEventListener('hashchange', async () => {
 
 async function refreshEnergy() {
   try {
-    ui.energyReport = await history.report(ui.energyDays, store.get().devices);
+    ui.energyReport = await history.report(ui.energyDays, engine.deviceList());
   } catch { ui.energyReport = null; }
 }
 
 engine.onUpdate(async (extra) => {
   if (extra?.notice) {
-    const d = store.device(extra.notice.deviceId);
+    const d = engine.deviceById(extra.notice.deviceId);
     toast(`${d?.name || ''} — ${extra.notice.kind === 'overload' ? t('auto.overload') : t('auto.standby')}`,
       extra.notice.kind === 'overload' ? 'error' : 'ok');
   }

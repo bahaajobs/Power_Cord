@@ -12,13 +12,23 @@ reached from here. The hardware is fine; the lock is a cloud-account problem,
 not a silicon one. The fix is to re-flash the Wi-Fi module with open firmware
 (OpenBeken or ESPHome) and drive the strips from our own software.
 
-Two ways to drive them, both supported:
+**The strips may not need re-flashing at all.** If they are LG U+ / Jinheung
+MTTL-class units, the stock firmware dials a server address stored in its own
+flash, and that address is rewritable in two lines over the strip's setup
+access point. See [`docs/16-stock-firmware.md`](docs/16-stock-firmware.md) —
+this removes the whole flashing gate, *if* the device matches, which nobody has
+confirmed yet.
 
-- **Direct mode (default).** The Android app talks to each strip's own web
-  server over Tasmota's `/cm?cmnd=` HTTP endpoint. No server, no broker, no
-  cloud.
-- **Server mode (optional).** A Node server bridges MQTT to a REST/WebSocket
-  API. Better for a fleet, and the only way schedules fire with the app closed.
+Three ways to drive them, all supported:
+
+- **Direct mode (default, re-flashed strips).** The app talks to each strip's
+  own web server over Tasmota's `/cm?cmnd=` HTTP endpoint. No server at all.
+- **Server mode + MQTT (re-flashed strips).** A Node server bridges MQTT to a
+  REST/WebSocket API. Better for a fleet.
+- **Server mode + MTTL (stock firmware, no flashing).** The strip dials the
+  server on TCP 10086 and speaks its native `up:` protocol. The strip connects
+  outbound, so nothing is opened on the home router. Direct phone-to-strip is
+  impossible here: the strip only ever talks to its one provisioned server.
 
 ## Non-negotiables
 
@@ -39,9 +49,15 @@ These are safety and honesty properties. Do not "simplify" them away.
    this whole design exists to prevent. Optimistic-without-reconciliation is a
    bug, not a performance win.
 
-4. **Never promise what the hardware cannot do.** The metering shunt sits
-   upstream of all four relays, so energy is measured **per strip, never per
-   outlet**. No feature, chart or doc may attribute energy to an outlet.
+4. **Never promise what the hardware cannot do.** On **re-flashed** strips the
+   metering shunt sits upstream of all four relays, so energy is measured **per
+   strip, never per outlet** — no feature, chart or doc may attribute energy to
+   an outlet on those.
+   **Exception, by measurement:** stock-firmware MTTL strips report power,
+   energy and temperature **per channel** in their native protocol. They carry
+   `perOutletMetering: true`, and only then may per-outlet figures be shown.
+   The rule is unchanged in spirit — say only what the hardware can actually
+   do — and rule 5 is how you know which case you are in.
 
 5. **Capabilities are detected, not assumed.** A strip only gains an energy tab
    after it has actually reported telemetry. Strips with no meter show
@@ -143,8 +159,11 @@ stored and never translated. Add strings to both `en` and `ar` in
 
 ```bash
 npm install
-npm run demo    # broker + server + 2 simulated strips → http://localhost:8080
-npm test        # 39 tests
+npm run demo    # broker + server + 2 simulated re-flashed strips
+npm test        # 49 tests
+PC_MTTL_ENABLED=1 npm start   # accept stock-firmware strips on TCP 10086
+npm run mttl-sim              # simulated stock strips dial in
+npm run provision -- --ip <SERVER-IP> --ssid WIFI --password PW
 npm start       # server only, against a real broker
 npx cap sync android && (cd android && ./gradlew assembleDebug)
 ```
@@ -159,8 +178,15 @@ previous version and conclude your change did nothing.
 
 ## The gate
 
-Nothing in this repository has touched a real strip. `docs/12-test-plan.md`
-Stage B is the gate, and its decisive item is whether `tuya-cloudcutter` can
-flash a unit over the air: if yes, ~10 minutes per strip; if no, every case gets
-opened for UART flashing, roughly four times the work. Every schedule downstream
-depends on that one answer.
+Nothing in this repository has touched a real strip.
+
+The decisive question is now **cheaper than it was**. Before assuming anything
+about flashing, put one unit into setup mode and look for a `TONLY_TAP_*`
+Wi-Fi network. If it appears and answers `up:ip:ip_ok`, the strips are
+stock-controllable and no flashing is needed at all
+([`docs/16-stock-firmware.md`](docs/16-stock-firmware.md)). Only if that fails
+does `docs/12-test-plan.md` Stage B apply, where the decisive item is whether
+`tuya-cloudcutter` can flash over the air: if yes ~10 minutes per strip, if no
+every case gets opened, roughly four times the work.
+
+One evening with one strip settles which world you are in.
