@@ -147,6 +147,22 @@ Arabic, schedules, history, standby cutoff, overload, bracket tariffs.
 
 ---
 
+## The strip's own fault flags
+
+Each channel's `getinfo` segment carries an **overload** and an **overheat**
+flag, and those are better evidence than our own wattage threshold: the device
+knows its relay ratings and its thermal state, and the app is guessing from a
+number. They were being parsed and thrown away; they are now surfaced as
+`outlets[].fault` (`overload` | `overheat` | `null`) and recorded as an event
+the first time each appears.
+
+The asserted vocabulary is undocumented — observed units send `none` when
+clear. So anything not recognisably clear (`none`, `ok`, `no`, `off`, `normal`,
+`0`) counts as a fault, and the raw string is logged once so the real
+vocabulary can be learned from a real strip rather than invented here. Failing
+safe matters more than avoiding a false alarm when the flag is about a relay
+overheating.
+
 ## Two hardware facts that change the product
 
 **Per-outlet metering is real.** The teardown found independent current sensing
@@ -181,6 +197,27 @@ Three consequences that shape the software:
   sequentially rather than loading the small DC supply at once. Our "all"
   command is a loop over channels anyway, since the protocol has no
   `up:onoff:0`.
+
+**The per-outlet LEDs are almost certainly local.** The protocol carries no LED
+frame at all — nothing sends a colour, nothing reports one, in the documented
+wire format or in any implementation of it. The dual-colour LEDs must therefore
+be driven by the MCU itself, over the `LED-SCK1`/`LED-SDA1` lines on the Wi-Fi
+board, and the obvious rule is the relay state: red when the outlet is off,
+green when it is on.
+
+**Unverified, and cheap to settle** — switch an outlet from the app and watch
+the colour. Recorded as a hypothesis, per rule 8.
+
+Either way there is nothing to implement, and one thing worth using: the LED is
+an **independent physical indicator of the true relay state**. During bring-up
+it is the ground truth to check our reconciliation against, because it does not
+pass through the server, the protocol or the app.
+
+One caveat worth keeping: the `대기전력자동차단용` (standby auto-cutoff) label
+means the firmware has a standby-cut state of its own. If the LED ever
+disagrees with what we report, the `<state>`, `<status>`, `<cfg hex>` and
+`<event hex>` fields of the `getinfo` frame are where to look — we parse and
+discard those four.
 
 **The relays are magnetic latching, and that is a safety fact.** They hold their
 contact state mechanically, need only a ~10–20 ms pulse to toggle, and draw no

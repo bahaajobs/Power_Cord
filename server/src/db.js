@@ -135,6 +135,7 @@ for (const [table, column, type] of [
   ['outlets', 'power_w', 'REAL'],
   ['outlets', 'energy_kwh', 'REAL'],
   ['outlets', 'temp_c', 'REAL'],
+  ['outlets', 'fault', 'TEXT'],
   ['strips', 'transport', "TEXT NOT NULL DEFAULT 'mqtt'"],
   ['strips', 'per_outlet_metering', 'INTEGER NOT NULL DEFAULT 0'],
 ]) {

@@ -185,6 +185,8 @@ export function stripView(strip) {
       watts: o.power_w ?? null,
       kwh: o.energy_kwh ?? null,
       tempC: o.temp_c ?? null,
+      // 'overload' | 'overheat' | null — the device's own verdict, not ours.
+      fault: o.fault ?? null,
       updatedAt: o.updated_at,
     })),
   };

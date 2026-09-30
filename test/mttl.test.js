@@ -16,6 +16,7 @@ const HTTP = 18120, MTTL = 18086;
 const BASE = `http://127.0.0.1:${HTTP}`;
 const PW = 'mttl-test-pw';
 const kids = [];
+let sim = null;          // the simulator currently connected; the fault test replaces it
 let token = '';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -77,7 +78,7 @@ before(async () => {
   await waitForPort(HTTP);
   await waitForPort(MTTL);
 
-  spawnChild(['sim/mttl-sim.js'], {
+  sim = spawnChild(['sim/mttl-sim.js'], {
     PC_MTTL_SIM_PORT: String(MTTL), PC_MTTL_SIM_COUNT: '2', PC_MTTL_SIM_BUTTONS: '0',
   });
 
@@ -99,7 +100,9 @@ test('parseGetinfo reads per-channel power, energy and temperature', () => {
               + '5:3600;on;0;none;none;95000;00000FA0;00000000;00000000;ok;00;30';
   const rows = parseGetinfo(frame);
   assert.equal(rows.length, 2, 'channel 5 is the aggregate and must not become an outlet');
-  assert.deepEqual(rows[0], { channel: 1, on: true, watts: 95, kwh: 4, tempC: 29 });
+  assert.deepEqual(rows[0], {
+    channel: 1, on: true, overload: false, overheat: false, watts: 95, kwh: 4, tempC: 29,
+  });
   assert.equal(rows[1].on, false);
   assert.equal(rows[1].watts, 0);
 });
@@ -107,6 +110,25 @@ test('parseGetinfo reads per-channel power, energy and temperature', () => {
 test('parseGetinfo tolerates the NUL padding the firmware sends', () => {
   const padded = 'up:getinfo:1:10;on;0;none;none;1000;00000001;00000000;00000000;ok;00;25\0\0'.replace(/\0/g, '');
   assert.equal(parseGetinfo(padded).length, 1);
+});
+
+test('the device\'s own overload and overheat flags are read, not discarded', () => {
+  const mk = (over, heat) =>
+    `up:getinfo:1:3600;on;0;${over};${heat};95000;00000FA0;00000000;00000000;ok;00;29`;
+
+  assert.equal(parseGetinfo(mk('none', 'none'))[0].overload, false);
+  assert.equal(parseGetinfo(mk('ok', 'ok'))[0].overheat, false);
+  assert.equal(parseGetinfo(mk('yes', 'none'))[0].overload, true);
+  assert.equal(parseGetinfo(mk('none', '1'))[0].overheat, true);
+
+  // The asserted vocabulary is undocumented, so an unrecognised value counts as
+  // a fault. Failing safe matters more than avoiding a false alarm when the
+  // flag is about a relay overheating.
+  assert.equal(parseGetinfo(mk('WEIRD', 'none'))[0].overload, true);
+
+  const both = parseGetinfo(mk('none', 'yes'))[0];
+  assert.equal(both.overload, false);
+  assert.equal(both.overheat, true);
 });
 
 test('a stock-firmware strip registers itself from its bootinfo frame', async () => {
@@ -207,10 +229,31 @@ test('a locked outlet is skipped by "all", not just refused individually', async
   await api('PATCH', `/api/strips/${id}/outlets/2`, { locked: false });
 });
 
+test('a fault the device reports reaches the API and the event log', async () => {
+  // Restart the simulator with channel 2 asserting an overload.
+  sim.kill('SIGKILL');
+  await wait(400);
+  sim = spawnChild(['sim/mttl-sim.js'], {
+    PC_MTTL_SIM_PORT: String(MTTL), PC_MTTL_SIM_COUNT: '1', PC_MTTL_SIM_BUTTONS: '0',
+    PC_MTTL_SIM_FAULT: 'overload:2',
+  });
+
+  const s = await until(async () => {
+    const x = (await api('GET', '/api/state')).body.strips.find((y) => y.online);
+    return x?.outlets.find((o) => o.idx === 2)?.fault === 'overload' ? x : null;
+  }, 25_000, 'the overload flag to surface');
+
+  assert.equal(s.outlets.find((o) => o.idx === 2).fault, 'overload');
+  assert.equal(s.outlets.find((o) => o.idx === 1).fault, null, 'other channels stay clear');
+
+  const events = (await api('GET', '/api/events?limit=50')).body;
+  assert.ok(events.some((e) => e.kind === 'mttl.overload'), 'the fault is recorded once');
+});
+
 test('a strip that drops off is marked offline and refuses commands', async () => {
   const before = (await api('GET', '/api/state')).body.strips[0];
-  // Kill the simulator; both strips should go offline.
-  kids[1].kill('SIGKILL');
+  // Kill whichever simulator is currently connected; the strips go offline.
+  sim.kill('SIGKILL');
   await until(async () => (await api('GET', '/api/state')).body.totals.stripsOnline === 0,
     15_000, 'strips to go offline');
   const res = await api('POST', `/api/strips/${before.id}/outlets/1`, { on: true });

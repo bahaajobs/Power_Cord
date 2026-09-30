@@ -52,8 +52,14 @@ const hex8 = (n) => Math.max(0, Math.floor(n)).toString(16).toUpperCase().padSta
 function getinfoFrame(s) {
   // The real firmware emits one segment per channel plus an aggregate at 5,
   // and pads the frame with NUL bytes.
-  const seg = (ch, on, mW, wh, temp) =>
-    `${ch}:3600;${on ? 'on' : 'off'};0;none;none;${Math.round(mW)};${hex8(wh)};${hex8(0)};${hex8(0)};ok;00;${temp}`;
+  // PC_MTTL_SIM_FAULT=overload:2 makes channel 2 report an overload, so the
+  // path that reacts to the device's own verdict can be tested.
+  const [faultKind, faultCh] = (process.env.PC_MTTL_SIM_FAULT || '').split(':');
+  const seg = (ch, on, mW, wh, temp) => {
+    const over = faultKind === 'overload' && String(ch) === faultCh ? 'yes' : 'none';
+    const heat = faultKind === 'overheat' && String(ch) === faultCh ? 'yes' : 'none';
+    return `${ch}:3600;${on ? 'on' : 'off'};0;${over};${heat};${Math.round(mW)};${hex8(wh)};${hex8(0)};${hex8(0)};ok;00;${temp}`;
+  };
   const parts = s.outlets.map((o) => seg(o.ch, o.on, watts(o) * 1000, o.wh, 28 + Math.round(Math.random() * 3)));
   const totalW = s.outlets.reduce((a, o) => a + watts(o), 0);
   const totalWh = s.outlets.reduce((a, o) => a + o.wh, 0);

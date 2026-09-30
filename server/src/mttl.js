@@ -55,6 +55,7 @@ const QUERY = /^up:query:(-?\d+)$/;
 const VOLTAGE_FLOOR_MV = 50_000;
 
 const sessions = new Map();   // stripId -> session
+const lastFault = new Map();  // `${stripId}:${channel}` -> 'overload' | 'overheat' | null
 let server = null;
 let onChange = () => {};
 let pollTimer = null;
@@ -65,6 +66,30 @@ export function mttlStatus() {
 }
 
 /** Parse one `up:getinfo:` frame into per-channel records. */
+/*
+ * The strip reports its own overload and overheat flags per channel. Those are
+ * better evidence than our wattage threshold: the device knows its relay
+ * ratings and its own thermal state, and we are guessing from a number.
+ *
+ * The vocabulary is not documented — observed units send "none" when clear. So
+ * rather than guess at the asserted spelling, treat a known-clear value as
+ * clear and anything else as a fault, and log the raw string the first time it
+ * appears so the real vocabulary can be learned from a real strip instead of
+ * invented here.
+ */
+const CLEAR = new Set(['none', 'ok', 'no', 'off', 'normal', 'n', '0', '']);
+const seenFlagValues = new Set();
+
+function flag(raw, kind) {
+  const v = String(raw ?? '').trim().toLowerCase();
+  if (CLEAR.has(v)) return false;
+  if (!seenFlagValues.has(`${kind}:${v}`)) {
+    seenFlagValues.add(`${kind}:${v}`);
+    log.warn(`unrecognised ${kind} value from a strip: ${JSON.stringify(raw)} — treating as asserted`);
+  }
+  return true;
+}
+
 export function parseGetinfo(line) {
   const out = [];
   GETINFO.lastIndex = 0;
@@ -75,6 +100,8 @@ export function parseGetinfo(line) {
     out.push({
       channel: ch,
       on: m[3].toLowerCase() === 'on',
+      overload: flag(m[5], 'overload'),
+      overheat: flag(m[6], 'overheat'),
       watts: Math.round((Number(m[7]) / 1000) * 100) / 100,      // mW → W
       kwh: Math.round((parseInt(m[8], 16) / 1000) * 1000) / 1000, // Wh hex → kWh
       tempC: Number(m[13]),
@@ -199,11 +226,19 @@ function handleLine(line, ip, socket, stripId) {
     let changed = false;
     let total = 0;
     const stmt = db.prepare(
-      'UPDATE outlets SET power_w = ?, energy_kwh = ?, temp_c = ? WHERE strip_id = ? AND idx = ?',
+      'UPDATE outlets SET power_w = ?, energy_kwh = ?, temp_c = ?, fault = ? WHERE strip_id = ? AND idx = ?',
     );
     for (const r of rows) {
       if (applyState(stripId, r.channel, r.on)) changed = true;
-      stmt.run(r.watts, r.kwh, r.tempC, stripId, r.channel);
+      const fault = r.overload ? 'overload' : r.overheat ? 'overheat' : null;
+      stmt.run(r.watts, r.kwh, r.tempC, fault, stripId, r.channel);
+      // The device asserting a fault is worth a record on its own — our own
+      // wattage rule may never trip while the strip's relay is cooking.
+      if (fault && lastFault.get(`${stripId}:${r.channel}`) !== fault) {
+        recordEvent(`mttl.${fault}`, stripId, `channel ${r.channel} (${r.watts} W, ${r.tempC} °C)`);
+        log.warn(`${fault.toUpperCase()} reported by strip ${stripId} channel ${r.channel}`);
+      }
+      lastFault.set(`${stripId}:${r.channel}`, fault);
       total += r.watts;
     }
     applyTelemetry(stripId, { watts: Math.round(total * 100) / 100 });
